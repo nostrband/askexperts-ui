@@ -1,5 +1,5 @@
 import React from 'react';
-// import Link from 'next/link'; // Commented out as it's not currently used
+import Link from 'next/link';
 
 export default function Footer() {
   return (
@@ -74,16 +74,14 @@ export default function Footer() {
             &copy; {new Date().getFullYear()}. All rights reserved.
           </p>
           
-          {/* Commented out for closed beta
           <div className="flex space-x-6 mt-4 md:mt-0">
-            <Link href="#" className="text-gray-400 hover:text-white text-sm">
+            <Link href="/privacy" className="text-gray-400 hover:text-white text-sm">
               Privacy Policy
             </Link>
-            <Link href="#" className="text-gray-400 hover:text-white text-sm">
+            <Link href="/tos" className="text-gray-400 hover:text-white text-sm">
               Terms of Service
             </Link>
           </div>
-          */}
         </div>
       </div>
     </footer>
