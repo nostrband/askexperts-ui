@@ -5,11 +5,12 @@ import Link from "next/link";
 import Image from "next/image";
 import { SignedIn, SignedOut, useClerk, UserButton } from "@clerk/nextjs";
 import Button from "../ui/Button";
-// import Button from '../ui/Button';
-// import { showComingSoonDialog } from '@/services/dialog';
+import { useDefaultWalletBalance } from "../../hooks/useDefaultWalletBalance";
 
 export default function Header() {
   const { openSignIn } = useClerk();
+  const { wallet, balance, loading } = useDefaultWalletBalance();
+
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-sm border-b border-gray-100">
       <div className="container mx-auto px-4 py-2 flex items-center justify-between">
@@ -45,12 +46,6 @@ export default function Header() {
         */}
 
         <div className="flex items-center space-x-4">
-          {/* <Button
-            variant="primary"
-            onClick={showComingSoonDialog}
-          >
-            ⚡ Get Started
-          </Button> */}
           <SignedOut>
             <Button
               variant="primary"
@@ -58,15 +53,24 @@ export default function Header() {
             >
               ⚡ Get Started
             </Button>
-
-            {/* <SignInButton />
-            <SignUpButton>
-              <button className="bg-[#6c47ff] text-white rounded-full font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 cursor-pointer">
-                Sign Up
-              </button>
-            </SignUpButton> */}
           </SignedOut>
           <SignedIn>
+            {wallet && (
+              <Link
+                href="/home/wallet"
+                className="flex items-center mr-2 px-3 py-1 bg-blue-50 rounded-full hover:bg-blue-100 transition-colors"
+              >
+                <span className="text-sm font-medium text-blue-800">
+                  {loading ? (
+                    "Loading..."
+                  ) : balance !== null ? (
+                    `₿ ${balance.toLocaleString()}`
+                  ) : (
+                    "-"
+                  )}
+                </span>
+              </Link>
+            )}
             <UserButton />
           </SignedIn>
         </div>
