@@ -55,23 +55,34 @@ export default function Header() {
             </Button>
           </SignedOut>
           <SignedIn>
-            {wallet && (
+            <div className="flex items-center space-x-2">
               <Link
-                href="/home/wallet"
-                className="flex items-center mr-2 px-3 py-1 bg-blue-50 rounded-full hover:bg-blue-100 transition-colors"
+                href="/home/experts"
+                className="flex items-center px-3 py-1 bg-green-50 rounded-full hover:bg-green-100 transition-colors"
               >
-                <span className="text-sm font-medium text-blue-800">
-                  {loading ? (
-                    "Loading..."
-                  ) : balance !== null ? (
-                    `₿ ${balance.toLocaleString()}`
-                  ) : (
-                    "-"
-                  )}
+                <span className="text-sm font-medium text-green-800">
+                  Experts
                 </span>
               </Link>
-            )}
-            <UserButton />
+              
+              {wallet && (
+                <Link
+                  href="/home/wallet"
+                  className="flex items-center px-3 py-1 bg-blue-50 rounded-full hover:bg-blue-100 transition-colors"
+                >
+                  <span className="text-sm font-medium text-blue-800">
+                    {loading ? (
+                      "Loading..."
+                    ) : balance !== null ? (
+                      `₿ ${balance.toLocaleString()}`
+                    ) : (
+                      "-"
+                    )}
+                  </span>
+                </Link>
+              )}
+              <UserButton />
+            </div>
           </SignedIn>
         </div>
       </div>

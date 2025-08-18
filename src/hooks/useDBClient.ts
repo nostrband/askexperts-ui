@@ -1,6 +1,6 @@
 import { useAuth } from "@clerk/nextjs";
-import { DBRemoteClient } from 'askexperts/db';
-import { useState, useEffect } from 'react';
+import { DBRemoteClient } from "askexperts/db";
+import { useState, useEffect } from "react";
 
 // Singleton instance of the client
 let clientInstance: DBRemoteClient | null = null;
@@ -21,22 +21,25 @@ export function useDBClient() {
           return;
         }
 
-        // Get the token from auth
-        const token = await getToken();
-        if (!token) {
-          throw new Error("Authentication token not available. Please sign in.");
-        }
-
         // Create a new client instance
-        clientInstance = new DBRemoteClient({ 
-          url: 'https://api.askexperts.io', 
-          token 
+        clientInstance = new DBRemoteClient({
+          url: "https://api.askexperts.io",
+          token: async () => {
+            const token = await getToken();
+            if (!token)
+              throw new Error(
+                "Authentication token not available. Please sign in."
+              );
+            return token;
+          },
         });
 
         setClient(clientInstance);
       } catch (err) {
-        console.error('Error initializing DB client:', err);
-        setError(err instanceof Error ? err : new Error('Unknown error occurred'));
+        console.error("Error initializing DB client:", err);
+        setError(
+          err instanceof Error ? err : new Error("Unknown error occurred")
+        );
       } finally {
         setLoading(false);
       }
