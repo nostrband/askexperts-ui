@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { SignedIn, SignedOut, useClerk, UserButton } from "@clerk/nextjs";
@@ -47,45 +47,95 @@ export default function Header() {
 
         <div className="flex items-center space-x-4">
           <SignedOut>
-            <Button
-              variant="primary"
-              onClick={openSignIn}
-            >
+            <Button variant="primary" onClick={openSignIn}>
               ⚡ Get Started
             </Button>
           </SignedOut>
           <SignedIn>
             <div className="flex items-center space-x-2">
-              <Link
-                href="/home/experts"
-                className="flex items-center px-3 py-1 bg-green-50 rounded-full hover:bg-green-100 transition-colors"
-              >
-                <span className="text-sm font-medium text-green-800">
-                  Experts
-                </span>
-              </Link>
-              
               {wallet && (
                 <Link
                   href="/home/wallet"
                   className="flex items-center px-3 py-1 bg-blue-50 rounded-full hover:bg-blue-100 transition-colors"
                 >
                   <span className="text-sm font-medium text-blue-800">
-                    {loading ? (
-                      "Loading..."
-                    ) : balance !== null ? (
-                      `₿ ${balance.toLocaleString()}`
-                    ) : (
-                      "-"
-                    )}
+                    {loading
+                      ? "Loading..."
+                      : balance !== null
+                      ? `₿ ${balance.toLocaleString()}`
+                      : "-"}
                   </span>
                 </Link>
               )}
-              <UserButton />
+              <UserDropdown />
             </div>
           </SignedIn>
         </div>
       </div>
     </header>
+  );
+}
+
+function UserDropdown() {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <Link href={"#"} onClick={() => setIsOpen(!isOpen)}>
+        &equiv;
+      </Link>
+
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg border border-gray-100 z-50">
+          <div className="py-2">
+            <div className="px-2 py-2 border-b border-gray-100">
+              <UserButton showName={true} />
+            </div>
+
+            <Link
+              href="/home/experts"
+              className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+              onClick={() => setIsOpen(false)}
+            >
+              Experts
+            </Link>
+
+            <Link
+              href="/home/wallet"
+              className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+              onClick={() => setIsOpen(false)}
+            >
+              Wallets
+            </Link>
+
+            <Link
+              href="/home/docstores"
+              className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+              onClick={() => setIsOpen(false)}
+            >
+              Doc Stores
+            </Link>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
