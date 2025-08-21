@@ -111,19 +111,19 @@ function UserDropdown() {
             </div>
 
             <Link
-              href="/home/experts"
-              className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-              onClick={() => setIsOpen(false)}
-            >
-              Experts
-            </Link>
-
-            <Link
               href="/home/wallet"
               className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
               onClick={() => setIsOpen(false)}
             >
-              Wallets
+              Wallet
+            </Link>
+
+            <Link
+              href="/home/experts"
+              className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+              onClick={() => setIsOpen(false)}
+            >
+              My Experts
             </Link>
 
             <Link
@@ -131,7 +131,7 @@ function UserDropdown() {
               className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
               onClick={() => setIsOpen(false)}
             >
-              Doc Stores
+              Documents
             </Link>
           </div>
         </div>

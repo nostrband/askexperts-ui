@@ -1,0 +1,251 @@
+"use client";
+
+import React, { useState, useRef, useEffect } from "react";
+import { useParams } from "next/navigation";
+import Header from "../../../components/layout/Header";
+import Footer from "../../../components/layout/Footer";
+import { useExpertChat } from "../../../hooks/useExpertChat";
+
+export default function ExpertChatPage() {
+  const params = useParams();
+  const expertId = params.id as string;
+
+  const {
+    expert,
+    loading,
+    error,
+    messages,
+    sendMessage,
+    sendError,
+    setSendError,
+    lastFailedMessage,
+    setLastFailedMessage,
+  } = useExpertChat(expertId);
+
+  const [inputMessage, setInputMessage] = useState("");
+  const [sending, setSending] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to bottom of messages when new messages are added
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+      inline: "nearest",
+    });
+  }, [messages]);
+
+  // Set input message to last failed message when there's an error
+  useEffect(() => {
+    if (lastFailedMessage) {
+      setInputMessage(lastFailedMessage);
+      setLastFailedMessage("");
+    }
+  }, [lastFailedMessage, setLastFailedMessage]);
+
+  // Handle sending a message
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!inputMessage.trim() || !expert) {
+      return;
+    }
+
+    // Clear any previous send errors
+    setSendError(null);
+
+    // Store the message content before clearing the textarea
+    const messageToSend = inputMessage;
+    
+    // Clear the textarea immediately when Send is clicked
+    setInputMessage("");
+
+    try {
+      setSending(true);
+      await sendMessage(messageToSend);
+      // No need to clear the textarea here as it's already cleared
+    } catch (err) {
+      console.error("Error in handleSendMessage:", err);
+      // Error handling is done in the useExpertChat hook
+      // The text will be restored via the useEffect that watches lastFailedMessage
+    } finally {
+      setSending(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <>
+        <Header />
+        <main className="pt-24 pb-16 min-h-screen">
+          <div className="container mx-auto px-4">
+            <div className="flex justify-center items-center h-64">
+              <p className="text-gray-600">Loading expert profile...</p>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
+  if (error || !expert) {
+    return (
+      <>
+        <Header />
+        <main className="pt-24 pb-16 min-h-screen">
+          <div className="container mx-auto px-4">
+            <div className="bg-white rounded-lg shadow-md p-6 text-center">
+              <p className="text-red-600">{error || "Expert not found"}</p>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <Header />
+      <main className="pt-24 pb-16 min-h-screen flex flex-col">
+        <div className="container mx-auto px-4 flex flex-col flex-grow relative">
+          {/* Expert Profile - Fixed at the top */}
+          <div className="bg-white rounded-lg shadow-md p-6 mb-4 sticky top-20 z-20">
+            <div className="flex justify-between items-center">
+              <div className="max-w-[80%]">
+                <h1 className="text-2xl font-bold">
+                  {expert.name || "Expert"}
+                </h1>
+                <p className="text-gray-600 break-words whitespace-pre-wrap overflow-hidden">{expert.description}</p>
+              </div>
+              {/* <div>
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                  Available
+                </span>
+              </div> */}
+            </div>
+          </div>
+
+          {/* Chat Container - Scrollable area between header and input */}
+          <div className="bg-white rounded-lg shadow-md p-6 mb-4 flex-grow overflow-y-auto mt-0 relative z-10">
+            {/* Add a top fade effect to hide content scrolling behind the header */}
+            <div className="absolute top-0 left-0 right-0 h-4 bg-gradient-to-b from-white to-transparent z-10"></div>
+            {messages.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-500">
+                  Start a conversation with {expert.name || "the expert"}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`flex ${
+                      message.sender === "user"
+                        ? "justify-end"
+                        : "justify-start"
+                    }`}
+                  >
+                    <div
+                      className={`max-w-[80%] rounded-lg p-4 ${
+                        message.sender === "user"
+                          ? "bg-blue-100 text-blue-900"
+                          : "bg-gray-100 text-gray-900"
+                      }`}
+                    >
+                      <p className="whitespace-pre-wrap break-words">
+                        {message.content}
+                      </p>
+                      <div className="text-xs mt-1 flex justify-between">
+                        <span className="text-gray-500">
+                          {new Date(message.timestamp).toLocaleTimeString()}
+                        </span>
+                        {message.sender === "user" && message.amountPaid && (
+                          <span className="text-red-600 font-medium ms-2">
+                            ₿ {message.amountPaid}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
+            )}
+          </div>
+
+          {/* Message Input - Fixed at the bottom */}
+          <div className="bg-white rounded-lg shadow-md p-6 sticky bottom-0 z-20">
+            <form onSubmit={handleSendMessage} className="space-y-4">
+              <textarea
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                onKeyDown={(e) => {
+                  // Send message on Ctrl+Enter
+                  if (e.key === 'Enter' && e.ctrlKey) {
+                    e.preventDefault();
+                    if (inputMessage.trim() && !sending) {
+                      handleSendMessage(e);
+                    }
+                  }
+                }}
+                placeholder={`Message ${expert.name || "the expert"}... (Ctrl+Enter to send)`}
+                className="w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                rows={3}
+                disabled={sending}
+              />
+
+              {/* Error message display */}
+              {sendError && (
+                <div className="text-red-600 text-sm mt-1">{sendError}</div>
+              )}
+
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={!inputMessage.trim() || sending}
+                  className={`bg-blue-600 text-white py-2 px-6 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                    !inputMessage.trim() || sending
+                      ? "opacity-50 cursor-not-allowed"
+                      : ""
+                  }`}
+                >
+                  {sending ? (
+                    <span className="flex items-center">
+                      <svg
+                        className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      Sending...
+                    </span>
+                  ) : (
+                    "Send"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </main>
+      <Footer />
+    </>
+  );
+}

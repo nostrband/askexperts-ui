@@ -35,6 +35,7 @@ export default function ExpertDetails({ expertId }: ExpertDetailsProps) {
   const [type, setType] = useState<'nostr' | 'openrouter'>('nostr');
   const [updatingExpert, setUpdatingExpert] = useState(false);
   const [updateExpertError, setUpdateExpertError] = useState<string | null>(null);
+  const [togglingDisabled, setTogglingDisabled] = useState(false);
 
   // Fetch docstores
   useEffect(() => {
@@ -181,6 +182,38 @@ export default function ExpertDetails({ expertId }: ExpertDetailsProps) {
     }
   };
 
+  // Handle toggling expert disabled status
+  const handleToggleExpertDisabled = async () => {
+    if (!dbClient || !expert) return;
+    
+    try {
+      setTogglingDisabled(true);
+      
+      // Create updated expert data with toggled disabled status
+      const updatedExpertData = {
+        ...expert,
+        disabled: !expert.disabled
+      };
+      
+      // Try to use setExpertDisabled if it exists, otherwise fall back to updateExpert
+      if (typeof dbClient.setExpertDisabled === 'function') {
+        await dbClient.setExpertDisabled(expertId, !expert.disabled);
+      } else {
+        await dbClient.updateExpert(updatedExpertData as any);
+      }
+      
+      // Refresh expert data
+      const refreshedExpertData = await dbClient.getExpert(expertId);
+      setExpert(refreshedExpertData);
+      
+    } catch (err) {
+      console.error('Error toggling expert status:', err);
+      setError(err instanceof Error ? err.message : 'Unknown error occurred');
+    } finally {
+      setTogglingDisabled(false);
+    }
+  };
+
   if (loading || dbLoading) {
     return <div className="p-4 text-center">Loading expert data...</div>;
   }
@@ -206,12 +239,32 @@ export default function ExpertDetails({ expertId }: ExpertDetailsProps) {
             <h2 className="text-xl font-semibold">{expert.nickname}</h2>
             <p className="text-sm text-gray-500">{expert.type}</p>
           </div>
-          <button
-            onClick={() => setEditDialogOpen(true)}
-            className="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-          >
-            Edit
-          </button>
+          <div className="flex space-x-2">
+            <button
+              onClick={handleToggleExpertDisabled}
+              disabled={togglingDisabled}
+              className={`py-2 px-4 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                togglingDisabled
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : expert.disabled
+                    ? 'bg-green-600 hover:bg-green-700 focus:ring-green-500'
+                    : 'bg-red-600 hover:bg-red-700 focus:ring-red-500'
+              }`}
+            >
+              {togglingDisabled
+                ? 'Processing...'
+                : expert.disabled
+                  ? 'Enable'
+                  : 'Disable'
+              }
+            </button>
+            <button
+              onClick={() => setEditDialogOpen(true)}
+              className="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            >
+              Edit
+            </button>
+          </div>
         </div>
         
         {/* Expert Details */}

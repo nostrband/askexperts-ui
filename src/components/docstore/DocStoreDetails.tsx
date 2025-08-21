@@ -11,6 +11,7 @@ interface DocStoreDetailsProps {
 export default function DocStoreDetails({ docStoreId }: DocStoreDetailsProps) {
   const { client, loading: clientLoading, error: clientError } = useDocStoreClient();
   const [docStore, setDocStore] = useState<DocStore | null>(null);
+  const [docCount, setDocCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -28,6 +29,15 @@ export default function DocStoreDetails({ docStoreId }: DocStoreDetailsProps) {
         const store = await client.getDocstore(docStoreId);
         if (store) {
           setDocStore(store);
+          
+          // Fetch document count
+          try {
+            const count = await client.countDocs(docStoreId);
+            setDocCount(count);
+          } catch (err) {
+            console.error('Error fetching document count:', err);
+            // Don't set an error, just leave count at 0
+          }
         } else {
           setError('Docstore not found');
         }
@@ -149,6 +159,11 @@ export default function DocStoreDetails({ docStoreId }: DocStoreDetailsProps) {
           <div>
             <p className="text-sm text-gray-500 mb-1">Options</p>
             <p>{docStore.options || 'None'}</p>
+          </div>
+          
+          <div>
+            <p className="text-sm text-gray-500 mb-1">Number of docs</p>
+            <p>{docCount}</p>
           </div>
         </div>
       </div>

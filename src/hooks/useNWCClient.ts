@@ -19,7 +19,7 @@ interface Nip47Transaction {
 
 // Helper function to convert millisats to sats
 export const millisatsToSats = (millisats: number): number => {
-  return millisats / 1000;
+  return Math.floor(millisats / 1000);
 };
 
 // Helper function to convert sats to millisats
