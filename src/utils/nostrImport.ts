@@ -124,7 +124,12 @@ export async function importNostrPosts({
 
     // Final update
     onProgress(100, `Import completed! Processed ${successCount}/${events.length} events.`);
-    return { success: true, message: `Successfully imported ${successCount} events.` };
+    return {
+      success: true,
+      message: `Successfully imported ${successCount} events.`,
+      count: successCount,
+      events: events
+    };
   } catch (error) {
     console.error('Error importing Nostr posts:', error);
     onProgress(0, `Error: ${error instanceof Error ? error.message : 'Unknown error'}`);

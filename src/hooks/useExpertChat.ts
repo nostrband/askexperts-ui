@@ -11,6 +11,7 @@ export interface ChatMessage {
   sender: "user" | "expert";
   timestamp: number;
   amountPaid?: number; // Amount paid in sats (only for expert messages)
+  sending?: boolean; // Flag to indicate if the message is currently being sent
 }
 
 export interface UseExpertChatResult {
@@ -76,7 +77,7 @@ export function useExpertChat(expertPubkey: string): UseExpertChatResult {
               if (lightningInvoice && lightningInvoice.invoice) {
                 // Parse the invoice to get the amount
                 const { amount_sats } = parseBolt11(lightningInvoice.invoice);
-                
+
                 // Calculate total amount paid including fees
                 const totalPaid = amount_sats + Math.ceil(fees_msat / 1000);
 
@@ -89,21 +90,26 @@ export function useExpertChat(expertPubkey: string): UseExpertChatResult {
                     fees_msat / 1000
                   )} sats to ${expertName}`
                 );
-                
+
+                // Force a refresh of the header balance by dispatching a custom event
+                window.dispatchEvent(new CustomEvent("wallet-balance-update"));
+
                 // Update the last user message with the amount paid
-                setMessages(prev => {
+                setMessages((prev) => {
                   // Find the last user message
-                  const lastUserMessageIndex = [...prev].reverse().findIndex(msg => msg.sender === "user");
+                  const lastUserMessageIndex = [...prev]
+                    .reverse()
+                    .findIndex((msg) => msg.sender === "user");
                   if (lastUserMessageIndex === -1) return prev;
-                  
+
                   // Create a new messages array with the updated message
                   const newMessages = [...prev];
                   const actualIndex = prev.length - 1 - lastUserMessageIndex;
                   newMessages[actualIndex] = {
                     ...newMessages[actualIndex],
-                    amountPaid: totalPaid
+                    amountPaid: totalPaid,
                   };
-                  
+
                   return newMessages;
                 });
               }
@@ -117,6 +123,7 @@ export function useExpertChat(expertPubkey: string): UseExpertChatResult {
 
         // Initialize client and get expert profile
         const expertData = await client.initialize();
+        console.log("expertData", expertData);
 
         if (isMounted) {
           setExpert(expertData);
@@ -169,6 +176,7 @@ export function useExpertChat(expertPubkey: string): UseExpertChatResult {
         content: messageContent,
         sender: "user",
         timestamp: Date.now(),
+        sending: true, // Mark the message as being sent
       };
 
       setMessages((prev) => [...prev, userMessage]);
@@ -185,14 +193,25 @@ export function useExpertChat(expertPubkey: string): UseExpertChatResult {
         sender: "expert",
         timestamp: Date.now(),
       };
-      setMessages((prev) => [...prev, expertReply]);
-
-      // Force a refresh of the header balance by dispatching a custom event
-      window.dispatchEvent(new CustomEvent("wallet-balance-update"));
+      // Update the user message to mark it as sent and add the expert reply
+      setMessages((prev) => {
+        const updatedMessages = prev.map((msg) =>
+          msg.id === messageId ? { ...msg, sending: false } : msg
+        );
+        return [...updatedMessages, expertReply];
+      });
     } catch (err) {
       console.error("Error sending message:", err);
 
-      // Remove the user message from history
+      // Instead of removing the message, mark it as not sending
+      // This ensures the spinner disappears if we keep the message in the UI
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === messageId ? { ...msg, sending: false } : msg
+        )
+      );
+
+      // Then remove the user message from history
       setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
 
       // Save the failed message so it can be put back in the textarea

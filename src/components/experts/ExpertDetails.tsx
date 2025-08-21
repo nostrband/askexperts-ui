@@ -36,6 +36,18 @@ export default function ExpertDetails({ expertId }: ExpertDetailsProps) {
   const [updatingExpert, setUpdatingExpert] = useState(false);
   const [updateExpertError, setUpdateExpertError] = useState<string | null>(null);
   const [togglingDisabled, setTogglingDisabled] = useState(false);
+  
+  // New fields
+  const [description, setDescription] = useState('');
+  const [picture, setPicture] = useState('');
+  const [hashtags, setHashtags] = useState('');
+  const [model, setModel] = useState('');
+  const [temperature, setTemperature] = useState('');
+  const [systemPrompt, setSystemPrompt] = useState('');
+  const [discoveryHashtags, setDiscoveryHashtags] = useState('');
+  const [discoveryRelays, setDiscoveryRelays] = useState('');
+  const [promptRelays, setPromptRelays] = useState('');
+  const [priceMargin, setPriceMargin] = useState('');
 
   // Fetch docstores
   useEffect(() => {
@@ -84,6 +96,18 @@ export default function ExpertDetails({ expertId }: ExpertDetailsProps) {
           
           setType(expertData.type as 'nostr' | 'openrouter' || 'nostr');
           
+          // Initialize new fields
+          setDescription(expertData.description || '');
+          setPicture(expertData.picture || '');
+          setHashtags(expertData.hashtags || '');
+          setModel(expertData.model || '');
+          setTemperature(expertData.temperature || '');
+          setSystemPrompt(expertData.system_prompt || '');
+          setDiscoveryHashtags(expertData.discovery_hashtags || '');
+          setDiscoveryRelays(expertData.discovery_relays || '');
+          setPromptRelays(expertData.prompt_relays || '');
+          setPriceMargin(expertData.price_margin || '');
+          
           // Fetch wallet if wallet_id exists
           if (expertData.wallet_id) {
             try {
@@ -129,7 +153,17 @@ export default function ExpertDetails({ expertId }: ExpertDetailsProps) {
         pubkey: pubkey.trim(),
         env: env.trim(),
         docstores: docstoresString,
-        type: type
+        type: type,
+        description: description.trim(),
+        picture: picture.trim(),
+        hashtags: hashtags.trim(),
+        model: model.trim(),
+        temperature: temperature.trim(),
+        system_prompt: systemPrompt.trim(),
+        discovery_hashtags: discoveryHashtags.trim(),
+        discovery_relays: discoveryRelays.trim(),
+        prompt_relays: promptRelays.trim(),
+        price_margin: priceMargin.trim()
       };
       
       // Update the expert
@@ -355,6 +389,18 @@ export default function ExpertDetails({ expertId }: ExpertDetailsProps) {
             const docstoreIds = expert.docstores ? expert.docstores.split(',').map(id => id.trim()) : [];
             setSelectedDocStoreIds(docstoreIds);
             setType(expert.type as 'nostr' | 'openrouter' || 'nostr');
+            
+            // Reset new fields
+            setDescription(expert.description || '');
+            setPicture(expert.picture || '');
+            setHashtags(expert.hashtags || '');
+            setModel(expert.model || '');
+            setTemperature(expert.temperature || '');
+            setSystemPrompt(expert.system_prompt || '');
+            setDiscoveryHashtags(expert.discovery_hashtags || '');
+            setDiscoveryRelays(expert.discovery_relays || '');
+            setPromptRelays(expert.prompt_relays || '');
+            setPriceMargin(expert.price_margin || '');
           }
           setUpdateExpertError(null);
         }}
@@ -373,6 +419,18 @@ export default function ExpertDetails({ expertId }: ExpertDetailsProps) {
                   const docstoreIds = expert.docstores ? expert.docstores.split(',').map(id => id.trim()) : [];
                   setSelectedDocStoreIds(docstoreIds);
                   setType(expert.type as 'nostr' | 'openrouter' || 'nostr');
+                  
+                  // Reset new fields
+                  setDescription(expert.description || '');
+                  setPicture(expert.picture || '');
+                  setHashtags(expert.hashtags || '');
+                  setModel(expert.model || '');
+                  setTemperature(expert.temperature || '');
+                  setSystemPrompt(expert.system_prompt || '');
+                  setDiscoveryHashtags(expert.discovery_hashtags || '');
+                  setDiscoveryRelays(expert.discovery_relays || '');
+                  setPromptRelays(expert.prompt_relays || '');
+                  setPriceMargin(expert.price_margin || '');
                 }
                 setUpdateExpertError(null);
               }}
@@ -490,6 +548,151 @@ export default function ExpertDetails({ expertId }: ExpertDetailsProps) {
               <option value="nostr">Nostr</option>
               <option value="openrouter">OpenRouter</option>
             </select>
+          </div>
+
+          <div>
+            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+              Description
+            </label>
+            <textarea
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Enter description"
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="picture" className="block text-sm font-medium text-gray-700 mb-1">
+              Picture
+            </label>
+            <input
+              type="text"
+              id="picture"
+              value={picture}
+              onChange={(e) => setPicture(e.target.value)}
+              placeholder="Enter picture URL"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="hashtags" className="block text-sm font-medium text-gray-700 mb-1">
+              Hashtags
+            </label>
+            <input
+              type="text"
+              id="hashtags"
+              value={hashtags}
+              onChange={(e) => setHashtags(e.target.value)}
+              placeholder="Enter hashtags"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="model" className="block text-sm font-medium text-gray-700 mb-1">
+              Model
+            </label>
+            <input
+              type="text"
+              id="model"
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              placeholder="Enter model"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="temperature" className="block text-sm font-medium text-gray-700 mb-1">
+              Temperature (0 to 1.0)
+            </label>
+            <input
+              type="number"
+              id="temperature"
+              value={temperature}
+              onChange={(e) => setTemperature(e.target.value)}
+              placeholder="Enter temperature"
+              min="0"
+              max="1"
+              step="0.01"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="systemPrompt" className="block text-sm font-medium text-gray-700 mb-1">
+              System Prompt
+            </label>
+            <textarea
+              id="systemPrompt"
+              value={systemPrompt}
+              onChange={(e) => setSystemPrompt(e.target.value)}
+              placeholder="Enter system prompt"
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="discoveryHashtags" className="block text-sm font-medium text-gray-700 mb-1">
+              Discovery Hashtags
+            </label>
+            <input
+              type="text"
+              id="discoveryHashtags"
+              value={discoveryHashtags}
+              onChange={(e) => setDiscoveryHashtags(e.target.value)}
+              placeholder="Enter discovery hashtags"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="discoveryRelays" className="block text-sm font-medium text-gray-700 mb-1">
+              Discovery Relays
+            </label>
+            <input
+              type="text"
+              id="discoveryRelays"
+              value={discoveryRelays}
+              onChange={(e) => setDiscoveryRelays(e.target.value)}
+              placeholder="Enter discovery relays"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="promptRelays" className="block text-sm font-medium text-gray-700 mb-1">
+              Prompt Relays
+            </label>
+            <input
+              type="text"
+              id="promptRelays"
+              value={promptRelays}
+              onChange={(e) => setPromptRelays(e.target.value)}
+              placeholder="Enter prompt relays"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="priceMargin" className="block text-sm font-medium text-gray-700 mb-1">
+              Price Margin (&gt; 0)
+            </label>
+            <input
+              type="number"
+              id="priceMargin"
+              value={priceMargin}
+              onChange={(e) => setPriceMargin(e.target.value)}
+              placeholder="Enter price margin"
+              min="0"
+              step="0.01"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            />
           </div>
           
           {updateExpertError && (

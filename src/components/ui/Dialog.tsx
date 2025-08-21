@@ -12,8 +12,8 @@ export default function Dialog({ isOpen, onClose, title, children, footer }: Dia
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-auto overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 overflow-hidden">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-auto flex flex-col max-h-[90vh]">
         <div className="flex items-center justify-between p-4 border-b">
           <h3 className="text-lg font-medium">{title}</h3>
           <button
@@ -29,7 +29,7 @@ export default function Dialog({ isOpen, onClose, title, children, footer }: Dia
             </svg>
           </button>
         </div>
-        <div className="p-4">{children}</div>
+        <div className="p-4 overflow-y-auto flex-grow">{children}</div>
         {footer && <div className="p-4 border-t">{footer}</div>}
       </div>
     </div>
