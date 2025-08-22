@@ -16,6 +16,7 @@ import { LightningPaymentManager } from "askexperts/payments";
 import { createOpenAI } from "askexperts/openai";
 import { useDefaultWalletBalance } from "../../hooks/useDefaultWalletBalance";
 
+const MAX_POSTS = 5000;
 const pool = new SimplePool();
 
 // Define the steps in the expert creation process
@@ -72,7 +73,8 @@ export default function CreateExpertDialog({
 }: CreateExpertDialogProps) {
   const router = useRouter();
   const { client: dbClient, loading: dbLoading } = useDBClient();
-  const { client: docStoreClient, loading: docStoreLoading } = useDocStoreClient();
+  const { client: docStoreClient, loading: docStoreLoading } =
+    useDocStoreClient();
   const { wallet } = useDefaultWalletBalance();
 
   // State for the multi-step dialog
@@ -93,6 +95,7 @@ export default function CreateExpertDialog({
   const [importedPosts, setImportedPosts] = useState<Post[]>([]);
   const [importedPostCount, setImportedPostCount] = useState(0);
   const [suggestingHashtags, setSuggestingHashtags] = useState(false);
+  const [profilePostCount, setProfilePostCount] = useState(0);
 
   // State for expert creation
   const [expertPubkey, setExpertPubkey] = useState("");
@@ -198,7 +201,7 @@ export default function CreateExpertDialog({
 
         // Set form values from profile
         if (profile.profile?.name) {
-          setNickname(`${profile.profile.name}_clone`);
+          setNickname(`${profile.profile.name} clone`);
         }
 
         if (profile.profile?.about) {
@@ -208,6 +211,9 @@ export default function CreateExpertDialog({
         if (profile.profile?.picture) {
           setPicture(profile.profile.picture);
         }
+        
+        // Fetch post count from nostr.band API
+        fetchProfileStats(nostrPubkey.trim());
       } else {
         setError("Profile not found");
       }
@@ -216,6 +222,23 @@ export default function CreateExpertDialog({
       setError(err instanceof Error ? err.message : "Unknown error occurred");
     } finally {
       setFetchingProfile(false);
+    }
+  };
+  
+  // Fetch profile stats from nostr.band API
+  const fetchProfileStats = async (pubkey: string) => {
+    try {
+      const response = await fetch(`https://api.nostr.band/v0/stats/profile/${pubkey}`);
+      const data = await response.json();
+      console.log("stats", data);
+      
+      if (data && data.stats?.[pubkey].pub_note_count) {
+        const count = Math.min(MAX_POSTS, data.stats?.[pubkey].pub_note_count);
+        setProfilePostCount(count);
+      }
+    } catch (err) {
+      console.error("Error fetching profile stats:", err);
+      // Don't set error state here, as this is a non-critical feature
     }
   };
 
@@ -269,11 +292,11 @@ export default function CreateExpertDialog({
         docstoreClient: docStoreClient,
         docstoreId: newDocstoreId,
         pubkey: nostrPubkey.trim(),
-        limit: 100, // Import 100 posts
+        limit: profilePostCount > 0 ? profilePostCount : MAX_POSTS,
         onProgress: (progress, status) => {
           setImportProgress(progress);
           setImportStatus(status);
-        }
+        },
       });
 
       if (!result.success) {
@@ -282,12 +305,14 @@ export default function CreateExpertDialog({
 
       // Store the imported posts count
       setImportedPostCount(result.count || 0);
-      
+
       // Map events to posts for hashtag extraction
       if (result.events) {
-        setImportedPosts(result.events.map(event => ({ content: event.content || "" })));
+        setImportedPosts(
+          result.events.map((event) => ({ content: event.content || "" }))
+        );
       }
-      
+
       // Move to the hashtag input screen
       setCurrentStep(CreateExpertStep.HASHTAG_INPUT);
       setImportingData(false);
@@ -299,8 +324,10 @@ export default function CreateExpertDialog({
   };
 
   // Suggest hashtags based on imported posts
-  const suggestHashtags = async () => {
-    if (!wallet?.nwc || importedPosts.length === 0) {
+  const suggestHashtags = async (posts?: Post[]) => {
+    if (!posts) posts = importedPosts;
+
+    if (!wallet?.nwc || posts.length === 0) {
       setError("Default wallet not available or no posts imported");
       return;
     }
@@ -311,11 +338,11 @@ export default function CreateExpertDialog({
 
       // Create LightningPaymentManager
       const paymentManager = new LightningPaymentManager(wallet.nwc);
-      
+
       // Create OpenAI instance
       const openai = createOpenAI({
         paymentManager,
-        pool
+        pool,
       });
 
       // Extract hashtags
@@ -323,11 +350,13 @@ export default function CreateExpertDialog({
         openai,
         "openai/gpt-oss-20b",
         nostrProfile,
-        importedPosts
+        posts
       );
+      console.log("suggestedTags", suggestedTags);
 
       // Set the suggested hashtags
       setHashtags(suggestedTags.join(" "));
+      setDiscoveryHashtags(suggestedTags.join(" "));
     } catch (err) {
       console.error("Error suggesting hashtags:", err);
       setError(err instanceof Error ? err.message : "Unknown error occurred");
@@ -350,7 +379,7 @@ export default function CreateExpertDialog({
       // Use profile name or pubkey
       const nostrName =
         nostrProfile?.profile?.name || nostrPubkey.substring(0, 8);
-      const expertName = `${nostrName}_clone`;
+      const expertName = `${nostrName} clone`;
 
       // Create a new wallet for the expert
       const walletId = await dbClient.insertWallet({
@@ -392,7 +421,7 @@ selection of person's posts will be prepended to user message in this format:
 '
 Act like you are that person - when users talk to you, look through the person's profile and posts and reply as if you were that person, preserve their unique style, their opinions and their preferences.
 
-${JSON.stringify(nostrProfile?.profile || {})}`
+${JSON.stringify(nostrProfile?.profile || {})}`,
       };
 
       await dbClient.insertExpert(expertData);
@@ -667,7 +696,7 @@ ${JSON.stringify(nostrProfile?.profile || {})}`
                     onClick={handleImportNostr}
                     className="mt-4 w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                   >
-                    Import
+                    {profilePostCount > 0 ? `Import ${profilePostCount} posts` : "Import"}
                   </button>
                 ) : (
                   <div className="mt-4">
@@ -684,14 +713,23 @@ ${JSON.stringify(nostrProfile?.profile || {})}`
             )}
           </div>
         );
-        
+
       case CreateExpertStep.HASHTAG_INPUT:
         return (
           <div className="space-y-4">
             <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
               <div className="flex items-center mb-2">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 text-green-500 mr-2"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                    clipRule="evenodd"
+                  />
                 </svg>
                 <h3 className="font-medium text-green-800">Import Finished!</h3>
               </div>
@@ -699,7 +737,7 @@ ${JSON.stringify(nostrProfile?.profile || {})}`
                 Successfully imported {importedPostCount} posts.
               </p>
             </div>
-            
+
             <div>
               <label
                 htmlFor="discovery-hashtags"
@@ -718,7 +756,7 @@ ${JSON.stringify(nostrProfile?.profile || {})}`
                   readOnly={suggestingHashtags}
                 />
                 <button
-                  onClick={suggestHashtags}
+                  onClick={() => suggestHashtags()}
                   disabled={suggestingHashtags}
                   className={`px-4 py-2 rounded-r-md text-white ${
                     suggestingHashtags
@@ -730,21 +768,22 @@ ${JSON.stringify(nostrProfile?.profile || {})}`
                 </button>
               </div>
               <p className="mt-1 text-xs text-gray-500">
-                Hashtags help users discover your expert. Example: #ai #nostr #bitcoin
+                Hashtags help users discover your expert. Example: #ai #nostr
+                #bitcoin
               </p>
             </div>
-            
+
             <div className="mt-4">
               <button
                 onClick={createExpert}
-                disabled={!hashtags.trim()}
+                disabled={!hashtags.trim() || creatingExpert}
                 className={`w-full px-4 py-2 rounded-md text-white ${
-                  !hashtags.trim()
+                  !hashtags.trim() || creatingExpert
                     ? "bg-blue-400 cursor-not-allowed"
                     : "bg-blue-600 hover:bg-blue-700"
                 }`}
               >
-                Create Expert
+                {creatingExpert ? "Creating..." : "Create Expert"}
               </button>
             </div>
           </div>
@@ -1027,7 +1066,7 @@ ${JSON.stringify(nostrProfile?.profile || {})}`
             </button>
           </div>
         );
-        
+
       case CreateExpertStep.HASHTAG_INPUT:
         return (
           <div className="flex justify-between space-x-2">

@@ -103,39 +103,43 @@ function UserDropdown() {
         &equiv;
       </Link>
 
-      {isOpen && (
-        <div className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg border border-gray-100 z-50">
-          <div className="py-2">
-            <div className="px-2 py-2 border-b border-gray-100">
-              <UserButton showName={true} />
-            </div>
-
-            <Link
-              href="/home/wallet"
-              className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-              onClick={() => setIsOpen(false)}
-            >
-              Wallet
-            </Link>
-
-            <Link
-              href="/home/experts"
-              className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-              onClick={() => setIsOpen(false)}
-            >
-              My Experts
-            </Link>
-
-            <Link
-              href="/home/docstores"
-              className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-              onClick={() => setIsOpen(false)}
-            >
-              Documents
-            </Link>
+      <div
+        className={`${
+          // We have to hide, not delete it, bcs UserButton must be in the DOM to show
+          // the user menu
+          !isOpen ? "invisible" : ""
+        } absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg border border-gray-100 z-50`}
+      >
+        <div className="py-2">
+          <div className="px-2 py-2 border-b border-gray-100">
+            <UserButton showName={true} />
           </div>
+
+          <Link
+            href="/home/wallet"
+            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+            onClick={() => setIsOpen(false)}
+          >
+            Wallet
+          </Link>
+
+          <Link
+            href="/home/experts"
+            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+            onClick={() => setIsOpen(false)}
+          >
+            My Experts
+          </Link>
+
+          <Link
+            href="/home/docstores"
+            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+            onClick={() => setIsOpen(false)}
+          >
+            Documents
+          </Link>
         </div>
-      )}
+      </div>
     </div>
   );
 }

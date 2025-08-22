@@ -58,13 +58,17 @@ export async function importNostrPosts({
     const events = await nostr.crawl({
       pubkey,
       kinds,
-      limit
+      limit,
+      onProgress: (count) => {
+        const p = Math.floor(count * 25 / limit);
+        onProgress(5 + p, `Fetching, got ${count} events...`);
+      }
     });
 
     // Clean up pool connections
     pool.destroy();
 
-    onProgress(20, `Fetched ${events.length} events. Preparing embeddings...`);
+    onProgress(30, `Fetched ${events.length} events. Preparing embeddings...`);
 
     // Initialize embeddings
     if (!docstore) {
