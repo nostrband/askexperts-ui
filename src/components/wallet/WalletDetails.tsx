@@ -25,7 +25,7 @@ export default function WalletDetails({ walletId, onWalletChange }: WalletDetail
   const [addWalletDialogOpen, setAddWalletDialogOpen] = useState(false);
   const [invoice, setInvoice] = useState('');
   const [amount, setAmount] = useState('');
-  const [description, setDescription] = useState('');
+  // description is now fixed as "AskExperts topup"
   const [generatedInvoice, setGeneratedInvoice] = useState('');
   const [paymentStatus, setPaymentStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -150,7 +150,7 @@ export default function WalletDetails({ walletId, onWalletChange }: WalletDetail
 
   // Handle creating an invoice
   const handleCreateInvoice = async () => {
-    if (!amount || !description.trim()) return;
+    if (!amount) return;
 
     try {
       const amountInSats = parseInt(amount, 10);
@@ -158,7 +158,9 @@ export default function WalletDetails({ walletId, onWalletChange }: WalletDetail
         throw new Error('Invalid amount');
       }
 
-      const invoiceStr = await makeInvoice(amountInSats, description);
+      // Use fixed description "AskExperts topup"
+      const fixedDescription = "AskExperts topup";
+      const invoiceStr = await makeInvoice(amountInSats, fixedDescription);
       setGeneratedInvoice(invoiceStr);
     } catch (err) {
       console.error('Error creating invoice:', err);
@@ -431,7 +433,6 @@ export default function WalletDetails({ walletId, onWalletChange }: WalletDetail
         onClose={() => {
           setReceiveDialogOpen(false);
           setAmount('');
-          setDescription('');
           setGeneratedInvoice('');
         }}
         title="Receive Payment"
@@ -441,7 +442,6 @@ export default function WalletDetails({ walletId, onWalletChange }: WalletDetail
               onClick={() => {
                 setReceiveDialogOpen(false);
                 setAmount('');
-                setDescription('');
                 setGeneratedInvoice('');
               }}
               className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
@@ -451,9 +451,9 @@ export default function WalletDetails({ walletId, onWalletChange }: WalletDetail
             {!generatedInvoice && (
               <button
                 onClick={handleCreateInvoice}
-                disabled={!amount || !description.trim()}
+                disabled={!amount}
                 className={`px-4 py-2 rounded-md text-sm font-medium text-white ${
-                  !amount || !description.trim()
+                  !amount
                     ? 'bg-green-400 cursor-not-allowed'
                     : 'bg-green-600 hover:bg-green-700'
                 }`}
@@ -481,19 +481,7 @@ export default function WalletDetails({ walletId, onWalletChange }: WalletDetail
                   min="1"
                 />
               </div>
-              <div>
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-                  Description
-                </label>
-                <input
-                  type="text"
-                  id="description"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Enter a description"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
-                />
-              </div>
+              {/* Description input removed - using fixed "AskExperts topup" */}
             </>
           ) : (
             <div className="space-y-3">

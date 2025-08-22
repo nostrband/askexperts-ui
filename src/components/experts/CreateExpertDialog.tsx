@@ -10,7 +10,7 @@ import { generateSecretKey, getPublicKey } from "nostr-tools";
 import { bytesToHex } from "@noble/hashes/utils";
 import { extractHashtags, Nostr } from "askexperts/experts";
 import { SimplePool } from "nostr-tools";
-import { importNostrPosts } from "../../utils/nostrImport";
+import { importNostrPosts, waitNewExpert } from "../../utils/nostrImport";
 import { DBExpert } from "askexperts/db";
 import { LightningPaymentManager } from "askexperts/payments";
 import { createOpenAI } from "askexperts/openai";
@@ -102,6 +102,7 @@ export default function CreateExpertDialog({
   const [expertPrivkey, setExpertPrivkey] = useState("");
   const [docstoreId, setDocstoreId] = useState("");
   const [creatingExpert, setCreatingExpert] = useState(false);
+  const [waitingForExpert, setWaitingForExpert] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // State for blank form
@@ -147,6 +148,7 @@ export default function CreateExpertDialog({
       setPromptRelays("");
       setPriceMargin("0.1");
       setSuggestingHashtags(false);
+      setWaitingForExpert(false);
     }
   }, [isOpen]);
 
@@ -230,7 +232,6 @@ export default function CreateExpertDialog({
     try {
       const response = await fetch(`https://api.nostr.band/v0/stats/profile/${pubkey}`);
       const data = await response.json();
-      console.log("stats", data);
       
       if (data && data.stats?.[pubkey].pub_note_count) {
         const count = Math.min(MAX_POSTS, data.stats?.[pubkey].pub_note_count);
@@ -425,7 +426,14 @@ ${JSON.stringify(nostrProfile?.profile || {})}`,
       };
 
       await dbClient.insertExpert(expertData);
-
+      
+      // Wait for the expert to start
+      setCreatingExpert(false);
+      setWaitingForExpert(true);
+      setImportStatus("Waiting for expert to start...");
+      
+      await waitNewExpert(expertPubkey, discoveryRelays ? discoveryRelays.split(" ") : undefined);
+      
       // Move to the congratulations step
       setCurrentStep(CreateExpertStep.CONGRATULATIONS);
     } catch (err) {
@@ -433,6 +441,7 @@ ${JSON.stringify(nostrProfile?.profile || {})}`,
       setError(err instanceof Error ? err.message : "Unknown error occurred");
     } finally {
       setCreatingExpert(false);
+      setWaitingForExpert(false);
     }
   };
 
@@ -496,6 +505,13 @@ ${JSON.stringify(nostrProfile?.profile || {})}`,
       };
 
       await dbClient.insertExpert(expertData);
+      
+      // Wait for the expert to start
+      setCreatingExpert(false);
+      setWaitingForExpert(true);
+      setImportStatus("Waiting for expert to start...");
+      
+      await waitNewExpert(expertPubkey, discoveryRelays ? discoveryRelays.split(" ") : undefined);
 
       // Move to the congratulations step
       setCurrentStep(CreateExpertStep.CONGRATULATIONS);
@@ -504,6 +520,7 @@ ${JSON.stringify(nostrProfile?.profile || {})}`,
       setError(err instanceof Error ? err.message : "Unknown error occurred");
     } finally {
       setCreatingExpert(false);
+      setWaitingForExpert(false);
     }
   };
 
@@ -774,17 +791,32 @@ ${JSON.stringify(nostrProfile?.profile || {})}`,
             </div>
 
             <div className="mt-4">
-              <button
-                onClick={createExpert}
-                disabled={!hashtags.trim() || creatingExpert}
-                className={`w-full px-4 py-2 rounded-md text-white ${
-                  !hashtags.trim() || creatingExpert
-                    ? "bg-blue-400 cursor-not-allowed"
-                    : "bg-blue-600 hover:bg-blue-700"
-                }`}
-              >
-                {creatingExpert ? "Creating..." : "Create Expert"}
-              </button>
+              {waitingForExpert ? (
+                <div className="text-center py-4">
+                  <div className="flex items-center justify-center mb-2">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span className="text-blue-600">Waiting for expert to start...</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2.5">
+                    <div className="bg-blue-600 h-2.5 rounded-full w-full animate-pulse"></div>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={createExpert}
+                  disabled={!hashtags.trim() || creatingExpert}
+                  className={`w-full px-4 py-2 rounded-md text-white ${
+                    !hashtags.trim() || creatingExpert
+                      ? "bg-blue-400 cursor-not-allowed"
+                      : "bg-blue-600 hover:bg-blue-700"
+                  }`}
+                >
+                  {creatingExpert ? "Creating..." : "Create Expert"}
+                </button>
+              )}
             </div>
           </div>
         );
@@ -1072,7 +1104,7 @@ ${JSON.stringify(nostrProfile?.profile || {})}`,
           <div className="flex justify-between space-x-2">
             <button
               onClick={() => setCurrentStep(CreateExpertStep.NOSTR_DATA_IMPORT)}
-              disabled={suggestingHashtags}
+              disabled={suggestingHashtags || waitingForExpert}
               className={`px-4 py-2 border border-gray-300 rounded-md text-sm font-medium ${
                 suggestingHashtags
                   ? "text-gray-400 cursor-not-allowed"
@@ -1083,7 +1115,7 @@ ${JSON.stringify(nostrProfile?.profile || {})}`,
             </button>
             <button
               onClick={handleClose}
-              disabled={suggestingHashtags}
+              disabled={suggestingHashtags || waitingForExpert}
               className={`px-4 py-2 border border-gray-300 rounded-md text-sm font-medium ${
                 suggestingHashtags
                   ? "text-gray-400 cursor-not-allowed"

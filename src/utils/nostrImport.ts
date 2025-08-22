@@ -1,7 +1,10 @@
-import { SimplePool } from 'nostr-tools';
+import { Filter, SimplePool } from 'nostr-tools';
 import { DocStoreWebSocketClient } from 'askexperts/docstore';
 import { createRagEmbeddings } from 'askexperts/rag';
 import { Nostr } from 'askexperts/experts';
+import { DEFAULT_DISCOVERY_RELAYS } from 'askexperts/client';
+
+const pool = new SimplePool();
 
 // Define the Doc interface
 interface Doc {
@@ -48,10 +51,9 @@ export async function importNostrPosts({
     onProgress(5, 'Fetching Nostr events...');
 
     // Event kinds
-    const kinds = [0, 1, 30023];
+    const kinds = [1, 30023];
 
     // Create SimplePool and Nostr utility instance
-    const pool = new SimplePool();
     const nostr = new Nostr(pool);
 
     // Crawl events using the Nostr utility class
@@ -139,4 +141,20 @@ export async function importNostrPosts({
     onProgress(0, `Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     return { success: false, message: error instanceof Error ? error.message : 'Unknown error' };
   }
+}
+
+export async function waitNewExpert(pubkey: string, relays?: string[]) {
+  const filter: Filter = {
+    kinds: [10174],
+    authors: [pubkey],
+    since: Math.floor(Date.now() / 1000) - 10,
+  }; 
+
+  relays = relays || DEFAULT_DISCOVERY_RELAYS;
+
+  let got = false;
+  do {
+    const events = await pool.querySync(relays, filter, { maxWait: 1000 });
+    got = events.length > 0;
+  } while (!got);
 }
