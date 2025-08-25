@@ -24,9 +24,13 @@ export interface UseExpertChatResult {
   setSendError: (error: string | null) => void;
   lastFailedMessage: string;
   setLastFailedMessage: (message: string) => void;
+  onMaxAmountExceeded?: (amount_sats: number) => Promise<boolean>;
 }
 
-export function useExpertChat(expertPubkey: string): UseExpertChatResult {
+export function useExpertChat(
+  expertPubkey: string,
+  onMaxAmountExceeded?: (amount_sats: number) => Promise<boolean>
+): UseExpertChatResult {
   const { client: dbClient, loading: dbLoading } = useDBClient();
   const [expert, setExpert] = useState<Expert | null>(null);
   const [loading, setLoading] = useState(true);
@@ -67,6 +71,23 @@ export function useExpertChat(expertPubkey: string): UseExpertChatResult {
         // Create chat client with expert pubkey and proper NWC string
         const client = new AskExpertsChatClient(expertPubkey, {
           nwcString: defaultWallet.nwc,
+          onMaxAmountExceeded: async (prompt, quote) => {
+            // If callback is provided, use it to ask for user confirmation
+            if (onMaxAmountExceeded) {
+              // Find the lightning invoice to get the amount
+              const lightningInvoice = quote.invoices.find(
+                (inv) => inv.method === METHOD_LIGHTNING
+              );
+              
+              if (lightningInvoice && lightningInvoice.invoice) {
+                // Parse the invoice to get the amount in sats
+                const { amount_sats } = parseBolt11(lightningInvoice.invoice);
+                return await onMaxAmountExceeded(amount_sats);
+              }
+            }
+            // Default behavior: reject payments over max amount
+            return false;
+          },
           onPaid: async (prompt, quote, proof, fees_msat) => {
             try {
               // Find the lightning invoice
@@ -238,5 +259,6 @@ export function useExpertChat(expertPubkey: string): UseExpertChatResult {
     setSendError,
     lastFailedMessage,
     setLastFailedMessage,
+    onMaxAmountExceeded,
   };
 }

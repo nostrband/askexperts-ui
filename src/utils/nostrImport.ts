@@ -1,10 +1,8 @@
-import { Filter, SimplePool } from 'nostr-tools';
 import { DocStoreWebSocketClient } from 'askexperts/docstore';
 import { createRagEmbeddings } from 'askexperts/rag';
 import { Nostr } from 'askexperts/experts';
-import { DEFAULT_DISCOVERY_RELAYS } from 'askexperts/client';
-
-const pool = new SimplePool();
+import { globalPool } from './nostr';
+import { createDocImporter } from 'askexperts/import';
 
 // Define the Doc interface
 interface Doc {
@@ -54,7 +52,7 @@ export async function importNostrPosts({
     const kinds = [1, 30023];
 
     // Create SimplePool and Nostr utility instance
-    const nostr = new Nostr(pool);
+    const nostr = new Nostr(globalPool);
 
     // Crawl events using the Nostr utility class
     const events = await nostr.crawl({
@@ -66,9 +64,6 @@ export async function importNostrPosts({
         onProgress(5 + p, `Fetching, got ${count} events...`);
       }
     });
-
-    // Clean up pool connections
-    pool.destroy();
 
     onProgress(30, `Fetched ${events.length} events. Preparing embeddings...`);
 
@@ -82,17 +77,19 @@ export async function importNostrPosts({
     
     onProgress(30, 'Processing events...');
 
+    const importer = await createDocImporter("nostr");
+
     // Process each event
     let successCount = 0;
     for (let i = 0; i < events.length; i++) {
       const event = events[i];
       try {
-        // Convert event to text, only take content and text as the
-        // rest is probably noise
-        const eventText = JSON.stringify([event.content, ...event.tags]);
+        // Convert to doc
+        const doc = await importer.createDoc(event);
+        doc.docstore_id = docstore?.id || docstoreId;
 
         // Generate embeddings
-        const chunks = await embeddings.embed(eventText);
+        const chunks = await embeddings.embed(doc.data);
 
         // Convert embeddings from number[][] to Float32Array[]
         const float32Embeddings = chunks.map((c) => {
@@ -103,18 +100,7 @@ export async function importNostrPosts({
           return float32Array;
         });
 
-        // Create document
-        const timestamp = Math.floor(Date.now() / 1000);
-
-        const doc: Doc = {
-          id: event.id,
-          docstore_id: docstore?.id || docstoreId,
-          timestamp: timestamp,
-          created_at: event.created_at,
-          type: `nostr:kind:${event.kind}`,
-          data: JSON.stringify(event),
-          embeddings: float32Embeddings,
-        };
+        doc.embeddings = float32Embeddings;
 
         // Add to docstore
         await docstoreClient.upsert(doc);
@@ -141,20 +127,4 @@ export async function importNostrPosts({
     onProgress(0, `Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     return { success: false, message: error instanceof Error ? error.message : 'Unknown error' };
   }
-}
-
-export async function waitNewExpert(pubkey: string, relays?: string[]) {
-  const filter: Filter = {
-    kinds: [10174],
-    authors: [pubkey],
-    since: Math.floor(Date.now() / 1000) - 10,
-  }; 
-
-  relays = relays || DEFAULT_DISCOVERY_RELAYS;
-
-  let got = false;
-  do {
-    const events = await pool.querySync(relays, filter, { maxWait: 1000 });
-    got = events.length > 0;
-  } while (!got);
 }

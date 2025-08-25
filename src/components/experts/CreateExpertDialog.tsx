@@ -10,11 +10,12 @@ import { generateSecretKey, getPublicKey } from "nostr-tools";
 import { bytesToHex } from "@noble/hashes/utils";
 import { extractHashtags, Nostr } from "askexperts/experts";
 import { SimplePool } from "nostr-tools";
-import { importNostrPosts, waitNewExpert } from "../../utils/nostrImport";
+import { importNostrPosts } from "../../utils/nostrImport";
 import { DBExpert } from "askexperts/db";
 import { LightningPaymentManager } from "askexperts/payments";
 import { createOpenAI } from "askexperts/openai";
 import { useDefaultWalletBalance } from "../../hooks/useDefaultWalletBalance";
+import { waitNewExpert } from "@/src/utils/nostr";
 
 const MAX_POSTS = 5000;
 const pool = new SimplePool();
@@ -49,17 +50,6 @@ interface ProfileInfo {
 interface Post {
   content: string;
   [key: string]: any;
-}
-
-// Define the NostrEvent interface
-interface NostrEvent {
-  id: string;
-  pubkey: string;
-  created_at: number;
-  kind: number;
-  tags: string[][];
-  content: string;
-  sig: string;
 }
 
 interface CreateExpertDialogProps {
@@ -356,8 +346,8 @@ export default function CreateExpertDialog({
       console.log("suggestedTags", suggestedTags);
 
       // Set the suggested hashtags
-      setHashtags(suggestedTags.join(" "));
-      setDiscoveryHashtags(suggestedTags.join(" "));
+      setHashtags(suggestedTags.join(", "));
+      setDiscoveryHashtags(suggestedTags.join(", "));
     } catch (err) {
       console.error("Error suggesting hashtags:", err);
       setError(err instanceof Error ? err.message : "Unknown error occurred");
@@ -785,8 +775,8 @@ ${JSON.stringify(nostrProfile?.profile || {})}`,
                 </button>
               </div>
               <p className="mt-1 text-xs text-gray-500">
-                Hashtags help users discover your expert. Example: #ai #nostr
-                #bitcoin
+                Hashtags help users discover your expert. Example: ai, nostr,
+                bitcoin
               </p>
             </div>
 

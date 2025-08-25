@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useDBClient } from '../../hooks/useDBClient';
 import { useDocStoreClient, DocStore } from '../../hooks/useDocStoreClient';
 import Dialog from '../ui/Dialog';
@@ -269,9 +270,22 @@ export default function ExpertDetails({ expertId }: ExpertDetailsProps) {
       {/* Expert Info */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
         <div className="flex justify-between items-center mb-4">
-          <div>
-            <h2 className="text-xl font-semibold">{expert.nickname}</h2>
-            <p className="text-sm text-gray-500">{expert.type}</p>
+          <div className="flex items-center space-x-4">
+            <div className="flex-shrink-0">
+              <div className="relative w-16 h-16 rounded-full overflow-hidden">
+                <Image
+                  src={expert.picture || "/nostr.png"}
+                  alt={expert.nickname || "Expert"}
+                  fill
+                  className="object-cover"
+                  sizes="64px"
+                />
+              </div>
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold">{expert.nickname}</h2>
+              <p className="text-sm text-gray-500">{expert.type}</p>
+            </div>
           </div>
           <div className="flex space-x-2">
             <button

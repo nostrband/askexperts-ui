@@ -2,13 +2,29 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { useParams } from "next/navigation";
+import Image from "next/image";
 import Header from "../../../components/layout/Header";
 import Footer from "../../../components/layout/Footer";
 import { useExpertChat } from "../../../hooks/useExpertChat";
+import Dialog from "../../../components/ui/Dialog";
 
 export default function ExpertChatPage() {
   const params = useParams();
   const expertId = params.id as string;
+  
+  // Payment confirmation dialog state
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState(0);
+  const [paymentResolver, setPaymentResolver] = useState<((value: boolean) => void) | null>(null);
+
+  // Handle max amount exceeded
+  const handleMaxAmountExceeded = async (amount_sats: number) => {
+    return new Promise<boolean>((resolve) => {
+      setPaymentAmount(amount_sats);
+      setPaymentResolver(() => resolve);
+      setIsPaymentDialogOpen(true);
+    });
+  };
 
   const {
     expert,
@@ -20,7 +36,7 @@ export default function ExpertChatPage() {
     setSendError,
     lastFailedMessage,
     setLastFailedMessage,
-  } = useExpertChat(expertId);
+  } = useExpertChat(expertId, handleMaxAmountExceeded);
 
   const [inputMessage, setInputMessage] = useState("");
   const [sending, setSending] = useState(false);
@@ -113,13 +129,26 @@ export default function ExpertChatPage() {
           {/* Expert Profile - Fixed at the top */}
           <div className="bg-white rounded-lg shadow-md p-6 mb-4 sticky top-20 z-20">
             <div className="flex justify-between items-center">
-              <div className="max-w-[80%]">
-                <h1 className="text-2xl font-bold">
-                  {expert.name || "Expert"}
-                </h1>
-                <p className="text-gray-600 break-words whitespace-pre-wrap overflow-hidden">
-                  {expert.description}
-                </p>
+              <div className="flex items-start space-x-4">
+                <div className="flex-shrink-0">
+                  <div className="relative w-16 h-16 rounded-full overflow-hidden">
+                    <Image
+                      src={expert.picture || "/nostr.png"}
+                      alt={expert.name || "Expert"}
+                      fill
+                      className="object-cover"
+                      sizes="64px"
+                    />
+                  </div>
+                </div>
+                <div className="max-w-[80%]">
+                  <h1 className="text-2xl font-bold">
+                    {expert.name || "Expert"}
+                  </h1>
+                  <p className="text-gray-600 break-words whitespace-pre-wrap overflow-hidden">
+                    {expert.description}
+                  </p>
+                </div>
               </div>
               {/* <div>
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
@@ -274,6 +303,51 @@ export default function ExpertChatPage() {
         </div>
       </main>
       <Footer />
+      
+      {/* Payment Confirmation Dialog */}
+      <Dialog
+        isOpen={isPaymentDialogOpen}
+        onClose={() => {
+          setIsPaymentDialogOpen(false);
+          if (paymentResolver) {
+            paymentResolver(false);
+          }
+        }}
+        title="Payment Confirmation"
+        footer={
+          <div className="flex justify-end space-x-2">
+            <button
+              onClick={() => {
+                setIsPaymentDialogOpen(false);
+                if (paymentResolver) {
+                  paymentResolver(false);
+                }
+              }}
+              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              No
+            </button>
+            <button
+              onClick={() => {
+                setIsPaymentDialogOpen(false);
+                if (paymentResolver) {
+                  paymentResolver(true);
+                }
+              }}
+              className="px-4 py-2 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+            >
+              Yes
+            </button>
+          </div>
+        }
+      >
+        <div className="p-4 text-center">
+          <p className="text-lg font-medium">Pay {paymentAmount} sats?</p>
+          <p className="text-sm text-gray-500 mt-2">
+            This amount exceeds the maximum allowed amount (100 sats).
+          </p>
+        </div>
+      </Dialog>
     </>
   );
 }
