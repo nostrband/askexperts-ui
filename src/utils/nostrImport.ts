@@ -4,17 +4,6 @@ import { Nostr } from 'askexperts/experts';
 import { globalPool } from './nostr';
 import { createDocImporter } from 'askexperts/import';
 
-// Define the Doc interface
-interface Doc {
-  id: string;
-  docstore_id: string;
-  timestamp: number;
-  created_at: number;
-  type: string;
-  data: string;
-  embeddings: Float32Array[];
-}
-
 // Function to get a docstore by ID
 async function getDocstore(client: DocStoreWebSocketClient, docstoreId: string) {
   try {

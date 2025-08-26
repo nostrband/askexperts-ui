@@ -46,6 +46,7 @@ interface NostrExpertCreatorProps {
   expertPubkey: string;
   expertPrivkey: string;
   onComplete: (pubkey: string) => void;
+  onWaiting: (pubkey: string) => void;
   onBack: () => void;
   onError: (error: string) => void;
 }
@@ -54,6 +55,7 @@ export default function NostrExpertCreator({
   expertPubkey,
   expertPrivkey,
   onComplete,
+  onWaiting,
   onBack,
   onError,
 }: NostrExpertCreatorProps) {
@@ -339,6 +341,9 @@ export default function NostrExpertCreator({
       setCreatingExpert(false);
       setWaitingForExpert(true);
       setImportStatus("Waiting for expert to start...");
+      
+      // Notify parent component that we're waiting for the expert
+      onWaiting(expertPubkey);
 
       await waitNewExpert(expertPubkey);
 
