@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import Header from '../../../components/layout/Header';
 import Footer from '../../../components/layout/Footer';
 import { useDBClient } from '../../../hooks/useDBClient';
@@ -93,14 +94,27 @@ export default function ExpertsPage() {
                     className="block p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
                   >
                     <div className="flex justify-between items-center">
-                      <div>
-                        <h3 className="font-medium text-gray-900">{expert.nickname}</h3>
-                        <p className="text-sm text-gray-500">{expert.type}</p>
-                        {expert.disabled && (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                            Disabled
-                          </span>
-                        )}
+                      <div className="flex items-center space-x-3">
+                        <div className="flex-shrink-0">
+                          <div className="relative w-10 h-10 rounded-full overflow-hidden">
+                            <Image
+                              src={expert.picture || "/nostr.png"}
+                              alt={expert.nickname || "Expert"}
+                              fill
+                              className="object-cover"
+                              sizes="40px"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <h3 className="font-medium text-gray-900">{expert.nickname}</h3>
+                          <p className="text-sm text-gray-500">{expert.type}</p>
+                          {expert.disabled && (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                              Disabled
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <div className="text-blue-600">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
