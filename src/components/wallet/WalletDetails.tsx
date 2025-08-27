@@ -1,9 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useDBClient } from '../../hooks/useDBClient';
 import { useNWCClient, millisatsToSats } from '../../hooks/useNWCClient';
+import { updateWalletBalance } from '../../utils/walletUtils';
 import Dialog from '../../components/ui/Dialog';
+import WaitingState from '../../components/ui/WaitingState';
+import SuccessState from '../../components/ui/SuccessState';
 import { DBWallet } from 'askexperts/db';
 import { QRCodeSVG } from 'qrcode.react';
 
@@ -30,19 +33,27 @@ export default function WalletDetails({ walletId, onWalletChange }: WalletDetail
   const [paymentStatus, setPaymentStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [transactions, setTransactions] = useState<any[]>([]);
   
+  // Invoice payment tracking
+  const [paymentPollingActive, setPaymentPollingActive] = useState(false);
+  const [paymentSettled, setPaymentSettled] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState<number | null>(null);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  
   // Add wallet dialog states
   const [newWalletName, setNewWalletName] = useState('');
   const [newWalletNWC, setNewWalletNWC] = useState('');
   const [addWalletStatus, setAddWalletStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
 
   // Initialize NWC client with the wallet's NWC string
-  const { 
-    balance, 
-    loading: nwcLoading, 
+  const {
+    balance,
+    loading: nwcLoading,
     error: nwcError,
     payInvoice,
     makeInvoice,
-    listTransactions
+    listTransactions,
+    lookupInvoice,
+    getBalance
   } = useNWCClient(wallet?.nwc);
 
   // Fetch wallet and wallets list
@@ -95,6 +106,62 @@ export default function WalletDetails({ walletId, onWalletChange }: WalletDetail
 
     return () => clearTimeout(timeoutId);
   }, [wallet, nwcLoading, listTransactions]);
+
+  // No longer needed as we'll use the invoice string directly
+
+  // Poll for invoice status
+  useEffect(() => {
+    const pollInvoiceStatus = async () => {
+      if (!generatedInvoice || !lookupInvoice || !paymentPollingActive) return;
+
+      try {
+        const invoiceData = await lookupInvoice({ invoice: generatedInvoice });
+        
+        if (invoiceData && invoiceData.state === 'settled') {
+          // Payment received!
+          setPaymentSettled(true);
+          setPaymentPollingActive(false);
+          
+          // Get the amount
+          if (invoiceData.amount) {
+            setPaymentAmount(millisatsToSats(invoiceData.amount));
+          }
+          
+          // Update balance - using the getBalance function from the hook
+          if (getBalance) {
+            getBalance().catch(console.error);
+          }
+          
+          // Also update the balance in the header
+          updateWalletBalance();
+          
+          // Clear polling interval
+          if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+          }
+        }
+      } catch (err) {
+        console.error('Error polling invoice status:', err);
+      }
+    };
+
+    if (paymentPollingActive && !pollingIntervalRef.current) {
+      // Initial check
+      pollInvoiceStatus();
+      
+      // Set up polling interval (every 2 seconds)
+      pollingIntervalRef.current = setInterval(pollInvoiceStatus, 2000);
+    }
+
+    // Cleanup function
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
+  }, [generatedInvoice, lookupInvoice, paymentPollingActive, getBalance]);
 
   // Handle making a wallet the default
   const handleMakeDefault = async (id: string) => {
@@ -162,6 +229,12 @@ export default function WalletDetails({ walletId, onWalletChange }: WalletDetail
       const fixedDescription = "AskExperts topup";
       const invoiceStr = await makeInvoice(amountInSats, fixedDescription);
       setGeneratedInvoice(invoiceStr);
+      setPaymentAmount(amountInSats);
+      
+      // Start polling immediately
+      setPaymentPollingActive(true);
+      setPaymentSettled(false);
+      
     } catch (err) {
       console.error('Error creating invoice:', err);
       setError(err instanceof Error ? err.message : 'Unknown error occurred');
@@ -349,7 +422,7 @@ export default function WalletDetails({ walletId, onWalletChange }: WalletDetail
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <span className={tx.type === 'incoming' ? 'text-green-600' : 'text-blue-600'}>
-                        {tx.type === 'incoming' ? '+' : '-'}{millisatsToSats(tx.amount).toLocaleString()} sats
+                        {tx.type === 'incoming' ? '+' : '-'}{millisatsToSats(tx.amount).toLocaleString()}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500 truncate max-w-xs">
@@ -434,6 +507,15 @@ export default function WalletDetails({ walletId, onWalletChange }: WalletDetail
           setReceiveDialogOpen(false);
           setAmount('');
           setGeneratedInvoice('');
+          setPaymentPollingActive(false);
+          setPaymentSettled(false);
+          setPaymentAmount(null);
+          
+          // Clear polling interval
+          if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+          }
         }}
         title="Receive Payment"
         footer={
@@ -443,6 +525,15 @@ export default function WalletDetails({ walletId, onWalletChange }: WalletDetail
                 setReceiveDialogOpen(false);
                 setAmount('');
                 setGeneratedInvoice('');
+                setPaymentPollingActive(false);
+                setPaymentSettled(false);
+                setPaymentAmount(null);
+                
+                // Clear polling interval
+                if (pollingIntervalRef.current) {
+                  clearInterval(pollingIntervalRef.current);
+                  pollingIntervalRef.current = null;
+                }
               }}
               className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
@@ -469,14 +560,14 @@ export default function WalletDetails({ walletId, onWalletChange }: WalletDetail
             <>
               <div>
                 <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-1">
-                  Amount (sats)
+                  Amount
                 </label>
                 <input
                   type="number"
                   id="amount"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  placeholder="Enter amount in sats"
+                  placeholder="Enter amount"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
                   min="1"
                 />
@@ -485,31 +576,66 @@ export default function WalletDetails({ walletId, onWalletChange }: WalletDetail
             </>
           ) : (
             <div className="space-y-3">
-              <p className="text-sm font-medium text-gray-700">Invoice Generated:</p>
-              
-              {/* QR Code Display */}
-              <div className="flex justify-center mb-4">
-                <QRCodeSVG value={generatedInvoice} size={200} />
-              </div>
-              
-              {/* Invoice as single-line input */}
-              <div className="bg-gray-100 p-3 rounded-md">
-                <input
-                  type="text"
-                  value={generatedInvoice}
-                  readOnly
-                  className="w-full text-xs text-gray-800 bg-transparent border-none focus:outline-none"
-                />
-              </div>
-              
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(generatedInvoice);
-                }}
-                className="w-full px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-              >
-                Copy to Clipboard
-              </button>
+              {paymentSettled ? (
+                // Show success state when payment is received
+                <SuccessState amount={paymentAmount || undefined} />
+              ) : paymentPollingActive ? (
+                // Show waiting state while waiting for payment
+                <>
+                  <WaitingState message="Waiting for payment..." />
+                  <div className="flex justify-center mb-4">
+                    <QRCodeSVG value={generatedInvoice} size={200} />
+                  </div>
+                  
+                  {/* Invoice as single-line input */}
+                  <div className="bg-gray-100 p-3 rounded-md">
+                    <input
+                      type="text"
+                      value={generatedInvoice}
+                      readOnly
+                      className="w-full text-xs text-gray-800 bg-transparent border-none focus:outline-none"
+                    />
+                  </div>
+                  
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(generatedInvoice);
+                    }}
+                    className="w-full px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                  >
+                    Copy to Clipboard
+                  </button>
+                </>
+              ) : (
+                // Initial state showing just the QR code
+                <>
+                  <p className="text-sm font-medium text-gray-700">Invoice Generated:</p>
+                  
+                  {/* QR Code Display */}
+                  <div className="flex justify-center mb-4">
+                    <QRCodeSVG value={generatedInvoice} size={200} />
+                  </div>
+                  
+                  {/* Invoice as single-line input */}
+                  <div className="bg-gray-100 p-3 rounded-md">
+                    <input
+                      type="text"
+                      value={generatedInvoice}
+                      readOnly
+                      className="w-full text-xs text-gray-800 bg-transparent border-none focus:outline-none"
+                    />
+                  </div>
+                  
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(generatedInvoice);
+                    }}
+                    className="w-full px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                  >
+                    Copy to Clipboard
+                  </button>
+                </>
+              )}
             </div>
           )}
         </div>

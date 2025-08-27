@@ -36,6 +36,7 @@ export interface UseNWCClientResult {
   payInvoice: (invoice: string) => Promise<string>; // returns preimage
   makeInvoice: (amount: number, description: string) => Promise<string>; // amount in sats, returns invoice string
   listTransactions: (limit?: number) => Promise<Nip47Transaction[]>;
+  lookupInvoice: (params: { payment_hash?: string, invoice?: string }) => Promise<Nip47Transaction | null>;
 }
 
 export function useNWCClient(nwcString: string | undefined): UseNWCClientResult {
@@ -159,6 +160,36 @@ export function useNWCClient(nwcString: string | undefined): UseNWCClientResult 
     }
   };
 
+  // Function to lookup a specific invoice by payment hash or invoice string
+  const lookupInvoice = async ({ payment_hash, invoice }: { payment_hash?: string, invoice?: string }): Promise<Nip47Transaction | null> => {
+    if (!client) {
+      console.warn("NWC client not initialized when calling lookupInvoice");
+      return null;
+    }
+
+    try {
+      // The NWC API doesn't have a direct lookupInvoice method, so we'll search through transactions
+      const response = await client.listTransactions({ limit: 50 });
+      
+      // If we have a payment_hash, search by that
+      if (payment_hash) {
+        const tx = response.transactions.find(tx => tx.payment_hash === payment_hash);
+        return tx || null;
+      }
+      
+      // If we have an invoice string, search by that
+      if (invoice) {
+        const tx = response.transactions.find(tx => tx.invoice === invoice);
+        return tx || null;
+      }
+      
+      return null;
+    } catch (err) {
+      console.error('Error looking up invoice:', err);
+      return null;
+    }
+  };
+
   return {
     client,
     loading,
@@ -167,6 +198,7 @@ export function useNWCClient(nwcString: string | undefined): UseNWCClientResult 
     getBalance,
     payInvoice,
     makeInvoice,
-    listTransactions
+    listTransactions,
+    lookupInvoice
   };
 }

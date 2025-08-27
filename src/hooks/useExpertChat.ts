@@ -3,6 +3,7 @@ import { AskExpertsChatClient } from "askexperts/client";
 import { Expert, METHOD_LIGHTNING, parseBolt11 } from "askexperts/common";
 import { useDBClient } from "./useDBClient";
 import { nwc } from "@getalby/sdk";
+import { updateWalletBalance } from "../utils/walletUtils";
 
 // Define Message interface for chat messages
 export interface ChatMessage {
@@ -112,8 +113,8 @@ export function useExpertChat(
                   )} sats to ${expertName}`
                 );
 
-                // Force a refresh of the header balance by dispatching a custom event
-                window.dispatchEvent(new CustomEvent("wallet-balance-update"));
+                // Force a refresh of the header balance
+                updateWalletBalance();
 
                 // Update the last user message with the amount paid
                 setMessages((prev) => {
