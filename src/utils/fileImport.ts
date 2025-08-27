@@ -36,32 +36,21 @@ export class FileImporter {
     }
   }
 
-  async importFile(fileContent: string, fileName: string): Promise<Doc> {
+  async importFile(fileContent: string, fileName: string, onProgress?: (done: number, total: number) => Promise<void>): Promise<Doc> {
     try {
       if (!this.embeddings || !this.importer) {
         await this.initialize();
       }
 
       // Create a document from the file content
-      const doc = await this.importer!.createDoc({
+      let doc = await this.importer!.createDoc({
         url: fileName,
         content: fileContent,
       });
       doc.docstore_id = this.docstoreId;
 
-      // Generate embeddings
-      const chunks = await this.embeddings!.embed(doc.data);
-
-      // Convert embeddings from number[][] to Float32Array[]
-      const float32Embeddings = chunks.map((c: any) => {
-        const float32Array = new Float32Array(c.embedding.length);
-        for (let i = 0; i < c.embedding.length; i++) {
-          float32Array[i] = c.embedding[i];
-        }
-        return float32Array;
-      });
-
-      doc.embeddings = float32Embeddings;
+      // Generate embeddings - pass the progress callback
+      doc = await this.embeddings!.embedDoc(doc, onProgress);
 
       // Add to docstore
       await this.docstoreClient.upsert(doc);

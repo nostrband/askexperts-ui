@@ -57,6 +57,8 @@ export default function BlankExpertCreator({
   const [importedFiles, setImportedFiles] = useState<ImportedFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [currentImportFile, setCurrentImportFile] = useState<string>("");
+  const [importProgress, setImportProgress] = useState<number>(0);
 
   // State for form fields
   const [nickname, setNickname] = useState("");
@@ -80,13 +82,20 @@ export default function BlankExpertCreator({
   useEffect(() => {
     if (docstoreId && docStoreClient) {
       const importer = new FileImporter(docStoreClient, docstoreId);
-      importer.initialize().then(() => {
-        setFileImporter(importer);
-      }).catch(err => {
-        console.error("Error initializing FileImporter:", err);
-        setError(err instanceof Error ? err.message : "Unknown error occurred");
-        onError(err instanceof Error ? err.message : "Unknown error occurred");
-      });
+      importer
+        .initialize()
+        .then(() => {
+          setFileImporter(importer);
+        })
+        .catch((err) => {
+          console.error("Error initializing FileImporter:", err);
+          setError(
+            err instanceof Error ? err.message : "Unknown error occurred"
+          );
+          onError(
+            err instanceof Error ? err.message : "Unknown error occurred"
+          );
+        });
     }
   }, [docstoreId, docStoreClient, onError]);
 
@@ -120,36 +129,53 @@ export default function BlankExpertCreator({
   // Handle file selection
   const handleFileSelect = async (files: FileList | null) => {
     if (!files || files.length === 0 || !fileImporter) return;
-    
+
     setIsImporting(true);
     setError(null);
-    
+
     try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        
+
         // Check if file is markdown or text
-        if (!file.name.endsWith('.md') && !file.name.endsWith('.txt')) {
-          console.warn(`Skipping file ${file.name}: not a markdown or text file`);
+        if (!file.name.endsWith(".md") && !file.name.endsWith(".txt")) {
+          console.warn(
+            `Skipping file ${file.name}: not a markdown or text file`
+          );
           continue;
         }
-        
+
+        // Set current file and reset progress
+        setCurrentImportFile(file.name);
+        setImportProgress(0);
+
         // Read file content
         const content = await readFileContent(file);
-        
-        // Import file
-        const doc = await fileImporter.importFile(content, file.name);
-        
+
+        // Import file with progress callback
+        const doc = await fileImporter.importFile(
+          content,
+          file.name,
+          async (done, total) => {
+            setImportProgress(Math.round((done / total) * 100));
+            await new Promise((ok) => setTimeout(ok, 0));
+          }
+        );
+
         // Add to imported files list
-        setImportedFiles(prev => [
+        setImportedFiles((prev) => [
           ...prev,
           {
             id: doc.id,
             name: file.name,
             size: doc.data.length,
-          }
+          },
         ]);
       }
+
+      // Reset progress indicators when all files are processed
+      setCurrentImportFile("");
+      setImportProgress(0);
     } catch (err) {
       console.error("Error importing files:", err);
       setError(err instanceof Error ? err.message : "Unknown error occurred");
@@ -200,7 +226,7 @@ export default function BlankExpertCreator({
   // Handle file delete
   const handleDeleteFile = (id: string) => {
     if (confirm("Are you sure you want to delete this file?")) {
-      setImportedFiles(prev => prev.filter(file => file.id !== id));
+      setImportedFiles((prev) => prev.filter((file) => file.id !== id));
     }
   };
 
@@ -290,16 +316,19 @@ export default function BlankExpertCreator({
       };
 
       await dbClient.insertExpert(expertData);
-      
+
       // Wait for the expert to start
       setCreatingExpert(false);
       setWaitingForExpert(true);
-      
+
       // Notify parent component that we're waiting for the expert
       onWaiting(expertPubkey);
-      
-      await waitNewExpert(expertPubkey, discoveryRelays ? discoveryRelays.split(" ") : undefined);
-      
+
+      await waitNewExpert(
+        expertPubkey,
+        discoveryRelays ? discoveryRelays.split(" ") : undefined
+      );
+
       // Notify parent component that expert creation is complete
       onComplete(expertPubkey);
     } catch (err) {
@@ -542,9 +571,12 @@ export default function BlankExpertCreator({
         return (
           <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
             <div className="mb-4">
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Add Documents</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                Add Documents
+              </h3>
               <p className="text-sm text-gray-600">
-                Select or drop markdown (.md) or text (.txt) files to add to your expert.
+                Select or drop markdown (.md) or text (.txt) files to add to
+                your expert.
               </p>
             </div>
 
@@ -582,11 +614,25 @@ export default function BlankExpertCreator({
                   d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
                 />
               </svg>
-              <p className="mt-2 text-sm text-gray-600">
-                {isImporting
-                  ? "Importing files..."
-                  : "Drag and drop files here, or click to select files"}
-              </p>
+              {isImporting && currentImportFile ? (
+                <div className="mt-2">
+                  <p className="text-sm text-gray-600">
+                    Importing file: {currentImportFile}: {importProgress}%
+                  </p>
+                  <div className="w-full bg-gray-200 rounded-full h-2.5 mt-1">
+                    <div
+                      className="bg-blue-600 h-2.5 rounded-full"
+                      style={{ width: `${importProgress}%` }}
+                    ></div>
+                  </div>
+                </div>
+              ) : (
+                <p className="mt-2 text-sm text-gray-600">
+                  {isImporting
+                    ? "Importing files..."
+                    : "Drag and drop files here, or click to select files"}
+                </p>
+              )}
               <p className="mt-1 text-xs text-gray-500">
                 Only .md and .txt files are supported
               </p>
