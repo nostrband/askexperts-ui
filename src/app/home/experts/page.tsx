@@ -9,6 +9,7 @@ import Footer from '../../../components/layout/Footer';
 import { useDBClient } from '../../../hooks/useDBClient';
 import { DBExpert } from 'askexperts/db';
 import CreateExpertDialog from '../../../components/experts/CreateExpertDialog';
+import EditExpertDialog from '../../../components/experts/EditExpertDialog';
 
 export default function ExpertsPage() {
   const { client, loading: clientLoading, error: clientError } = useDBClient();
@@ -17,8 +18,9 @@ export default function ExpertsPage() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   
-  // Create expert dialog state
+  // Create/Edit expert dialog state
   const [createExpertDialogOpen, setCreateExpertDialogOpen] = useState(false);
+  const [editExpertId, setEditExpertId] = useState<string | null>(null);
 
 
   useEffect(() => {
@@ -88,9 +90,8 @@ export default function ExpertsPage() {
             {!loading && !error && experts.length > 0 && (
               <div className="space-y-4">
                 {experts.map((expert) => (
-                  <Link
+                  <div
                     key={expert.pubkey}
-                    href={`/home/experts/${expert.pubkey}`}
                     className="block p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
                   >
                     <div className="flex justify-between items-center">
@@ -108,21 +109,66 @@ export default function ExpertsPage() {
                         </div>
                         <div>
                           <h3 className="font-medium text-gray-900">{expert.nickname}</h3>
-                          <p className="text-sm text-gray-500">{expert.type}</p>
-                          {expert.disabled && (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                              Disabled
-                            </span>
+                          {!expert.disabled ? (
+                            <span className="text-sm text-green-600">Active</span>
+                          ) : (
+                            <span className="text-sm text-red-600">Stopped</span>
                           )}
                         </div>
                       </div>
-                      <div className="text-blue-600">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                        </svg>
+                      <div className="flex space-x-3">
+                        <Link
+                          href={`/experts/${expert.pubkey}`}
+                          className="p-3 rounded-full text-blue-600 hover:bg-blue-50"
+                          title="Chat with expert"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z" />
+                            <path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z" />
+                          </svg>
+                        </Link>
+                        <button
+                          onClick={() => {
+                            // Toggle disabled status
+                            if (client) {
+                              client.setExpertDisabled(expert.pubkey, !expert.disabled)
+                                .then(() => {
+                                  // Refresh experts list
+                                  client.listExperts().then(setExperts);
+                                })
+                                .catch(err => {
+                                  console.error('Error toggling expert status:', err);
+                                });
+                            }
+                          }}
+                          className={`p-3 rounded-full cursor-pointer ${!expert.disabled ? 'text-red-600 hover:bg-red-50' : 'text-green-600 hover:bg-green-50'}`}
+                          title={expert.disabled ? "Start expert" : "Stop expert"}
+                        >
+                          {!expert.disabled ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                              <rect x="6" y="6" width="8" height="8" />
+                            </svg>
+                          ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditExpertId(expert.pubkey);
+                            setCreateExpertDialogOpen(true);
+                          }}
+                          className="p-3 rounded-full text-gray-600 hover:bg-gray-100 cursor-pointer"
+                          title="Settings"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+                          </svg>
+                        </button>
                       </div>
                     </div>
-                  </Link>
+                  </div>
                 ))}
               </div>
             )}
@@ -133,9 +179,28 @@ export default function ExpertsPage() {
 
       {/* Create Expert Dialog */}
       <CreateExpertDialog
-        isOpen={createExpertDialogOpen}
-        onClose={() => setCreateExpertDialogOpen(false)}
+        isOpen={createExpertDialogOpen && !editExpertId}
+        onClose={() => {
+          setCreateExpertDialogOpen(false);
+          setEditExpertId(null);
+        }}
       />
+
+      {/* Edit Expert Dialog */}
+      {editExpertId && (
+        <EditExpertDialog
+          isOpen={createExpertDialogOpen && !!editExpertId}
+          onClose={() => {
+            setCreateExpertDialogOpen(false);
+            setEditExpertId(null);
+            // Refresh experts list after editing
+            if (client) {
+              client.listExperts().then(setExperts);
+            }
+          }}
+          expertId={editExpertId}
+        />
+      )}
     </>
   );
 }

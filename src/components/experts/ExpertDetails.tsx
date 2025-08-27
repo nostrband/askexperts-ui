@@ -11,9 +11,10 @@ import { DBExpert } from 'askexperts/db'
 
 interface ExpertDetailsProps {
   expertId: string;
+  isInDialog?: boolean;
 }
 
-export default function ExpertDetails({ expertId }: ExpertDetailsProps) {
+export default function ExpertDetails({ expertId, isInDialog = false }: ExpertDetailsProps) {
   const router = useRouter();
   const { client: dbClient, loading: dbLoading, error: dbError } = useDBClient();
   const { client: docStoreClient, loading: docStoreLoading, error: docStoreError } = useDocStoreClient();
@@ -266,7 +267,7 @@ export default function ExpertDetails({ expertId }: ExpertDetailsProps) {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6">
+    <div className={isInDialog ? "" : "container mx-auto px-4 py-6"}>
       {/* Expert Info */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
         <div className="flex justify-between items-center mb-4">
