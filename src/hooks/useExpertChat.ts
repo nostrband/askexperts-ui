@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from "react";
-import { AskExpertsChatClient } from "askexperts/client";
+import { AskExpertsChatClient, AskExpertsClient } from "askexperts/client";
 import { Expert, METHOD_LIGHTNING, parseBolt11 } from "askexperts/common";
 import { useDBClient } from "./useDBClient";
 import { nwc } from "@getalby/sdk";
 import { updateWalletBalance } from "../utils/walletUtils";
+import { parseExpertProfile } from "askexperts/experts";
+import { useClerk } from "@clerk/nextjs";
 
 // Define Message interface for chat messages
 export interface ChatMessage {
@@ -40,6 +42,7 @@ export function useExpertChat(
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const [lastFailedMessage, setLastFailedMessage] = useState<string>("");
+  const { openSignIn } = useClerk();
 
   const chatClient = useRef<AskExpertsChatClient | null>(null);
   const nwcClientRef = useRef<nwc.NWCClient | null>(null);
@@ -49,11 +52,35 @@ export function useExpertChat(
     let isMounted = true;
 
     const initializeClient = async () => {
-      if (!dbClient || dbLoading) return;
+      if (!dbClient) {
+
+        try {
+          using anonClient = new AskExpertsClient();
+          const experts = await anonClient.fetchExperts({ pubkeys: [expertPubkey] });
+          if (!experts.length) {
+            console.error(`Expert ${expertPubkey} not found`);
+            return;
+          }
+          const expertData = experts[0];
+          console.log("expertData", expertData);
+          if (isMounted) {
+            setExpert(expertData);
+            setLoading(false);
+          }
+        } catch (err) {
+          console.error("Error fetching expert:", err);
+          if (isMounted) {
+            setError("Failed to load expert profile. Please try again later.");
+            setLoading(false);
+          }
+        }
+        return;
+      }
+
+      setLoading(true);
+      if (dbLoading) return;
 
       try {
-        setLoading(true);
-
         // Get the default wallet to get the NWC string
         const defaultWallet = await dbClient.getDefaultWallet();
 
@@ -79,7 +106,7 @@ export function useExpertChat(
               const lightningInvoice = quote.invoices.find(
                 (inv) => inv.method === METHOD_LIGHTNING
               );
-              
+
               if (lightningInvoice && lightningInvoice.invoice) {
                 // Parse the invoice to get the amount in sats
                 const { amount_sats } = parseBolt11(lightningInvoice.invoice);
@@ -179,6 +206,11 @@ export function useExpertChat(
 
   // Function to send a message to the expert
   const sendMessage = async (messageContent: string) => {
+    if (!chatClient.current) {
+      openSignIn()
+      return;
+    }
+
     if (!messageContent.trim() || !chatClient.current || sending) {
       return;
     }

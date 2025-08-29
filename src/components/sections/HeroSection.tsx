@@ -17,9 +17,9 @@ export default function HeroSection() {
               💬 Ask Experts
             </span>
             <br />
-            Powered by Human Knowledge
+            Specialized AI Experts, 
             <br />
-            In Your AI Chat
+            Paid with ₿itcoin
           </h1>
 
           <p className="text-xl text-gray-600 mb-10 max-w-3xl mx-auto">

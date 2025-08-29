@@ -21,6 +21,9 @@ export function useDBClient() {
           return;
         }
 
+        // Leave client as null for anon users
+        if (!await getToken()) return;
+
         // Create a new client instance
         clientInstance = new DBRemoteClient({
           url: "https://api.askexperts.io",
