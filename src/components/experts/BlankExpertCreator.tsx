@@ -72,6 +72,7 @@ export default function BlankExpertCreator({
   const [discoveryRelays, setDiscoveryRelays] = useState("");
   const [promptRelays, setPromptRelays] = useState("");
   const [priceMargin, setPriceMargin] = useState("0.1");
+  const [expertType, setExpertType] = useState("rag");
 
   // Reset error when component mounts or step changes
   useEffect(() => {
@@ -253,6 +254,13 @@ export default function BlankExpertCreator({
       setCreatingExpert(true);
       setError(null);
 
+      // If expert type is system_prompt, skip docstore creation and document upload
+      if (expertType === "system_prompt") {
+        // Skip directly to creating the expert
+        await handleCreateBlankExpert();
+        return;
+      }
+
       // Create a docstore for the expert
       const newDocstoreId = await createDocstore();
 
@@ -300,10 +308,10 @@ export default function BlankExpertCreator({
         privkey: expertPrivkey,
         description,
         picture,
-        docstores: docstoreId,
+        docstores: expertType === "system_prompt" ? "" : docstoreId,
         disabled: false,
         user_id: await dbClient.getUserId(),
-        type: "rag",
+        type: expertType,
         wallet_id: walletId,
         model,
         price_margin: priceMargin,
@@ -414,6 +422,49 @@ export default function BlankExpertCreator({
                 placeholder="Enter hashtags"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
+            </div>
+
+            <div>
+              <label
+                htmlFor="expertType"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Expert Type
+              </label>
+              <div className="mt-2 space-y-2">
+                <div className="flex items-center">
+                  <input
+                    id="rag"
+                    name="expertType"
+                    type="radio"
+                    checked={expertType === "rag"}
+                    onChange={() => setExpertType("rag")}
+                    className="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <label
+                    htmlFor="rag"
+                    className="ml-2 block text-sm text-gray-700"
+                  >
+                    RAG (Retrieval Augmented Generation with documents)
+                  </label>
+                </div>
+                <div className="flex items-center">
+                  <input
+                    id="system_prompt"
+                    name="expertType"
+                    type="radio"
+                    checked={expertType === "system_prompt"}
+                    onChange={() => setExpertType("system_prompt")}
+                    className="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <label
+                    htmlFor="system_prompt"
+                    className="ml-2 block text-sm text-gray-700"
+                  >
+                    System Prompt (No document retrieval)
+                  </label>
+                </div>
+              </div>
             </div>
 
             <div>
@@ -561,7 +612,11 @@ export default function BlankExpertCreator({
                     : "bg-blue-600 hover:bg-blue-700"
                 }`}
               >
-                {creatingExpert ? "Creating..." : "Next"}
+                {creatingExpert
+                  ? "Creating..."
+                  : expertType === "system_prompt"
+                  ? "Create"
+                  : "Next"}
               </button>
             </div>
           </div>

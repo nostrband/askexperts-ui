@@ -12,7 +12,7 @@ interface EditExpertDialogProps {
   expertId: string;
 }
 
-type ExpertType = "rag";
+type ExpertType = "rag" | "system_prompt";
 
 export default function EditExpertDialog({
   isOpen,
@@ -312,19 +312,39 @@ export default function EditExpertDialog({
 
         <div>
           <label
-            htmlFor="type"
+            htmlFor="expertType"
             className="block text-sm font-medium text-gray-700 mb-1"
           >
-            Type
+            Expert Type
           </label>
-          <select
-            id="type"
-            value={type}
-            onChange={(e) => setType(e.target.value as ExpertType)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="rag">RAG</option>
-          </select>
+          <div className="mt-2 space-y-2">
+            <div className="flex items-center">
+              <input
+                id="rag"
+                name="expertType"
+                type="radio"
+                checked={type === "rag"}
+                onChange={() => setType("rag")}
+                className="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <label htmlFor="rag" className="ml-2 block text-sm text-gray-700">
+                RAG (Retrieval Augmented Generation with documents)
+              </label>
+            </div>
+            <div className="flex items-center">
+              <input
+                id="system_prompt"
+                name="expertType"
+                type="radio"
+                checked={type === "system_prompt"}
+                onChange={() => setType("system_prompt")}
+                className="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <label htmlFor="system_prompt" className="ml-2 block text-sm text-gray-700">
+                System Prompt (No document retrieval)
+              </label>
+            </div>
+          </div>
         </div>
 
         <div>
