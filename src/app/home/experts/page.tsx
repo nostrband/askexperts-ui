@@ -109,11 +109,16 @@ export default function ExpertsPage() {
                         </div>
                         <div>
                           <h3 className="font-medium text-gray-900">{expert.nickname}</h3>
-                          {!expert.disabled ? (
-                            <span className="text-sm text-green-600">Active</span>
-                          ) : (
-                            <span className="text-sm text-red-600">Stopped</span>
-                          )}
+                          <div className="flex items-center space-x-2">
+                            {!expert.disabled ? (
+                              <span className="text-sm text-green-600">Active</span>
+                            ) : (
+                              <span className="text-sm text-red-600">Stopped</span>
+                            )}
+                            {expert.model && (
+                              <span className="text-sm text-gray-500">{expert.model}</span>
+                            )}
+                          </div>
                         </div>
                       </div>
                       <div className="flex space-x-3">
