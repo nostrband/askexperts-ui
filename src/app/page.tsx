@@ -21,12 +21,12 @@ export default function Home() {
   const router = useRouter();
   const { isSignedIn } = useAuth();
 
-  // Redirect to /home if user is authenticated
-  useEffect(() => {
-    if (isSignedIn) {
-      router.push('/home');
-    }
-  }, [isSignedIn, router]);
+  // Redirection to /home disabled as per requirement
+  // useEffect(() => {
+  //   if (isSignedIn) {
+  //     router.push('/home');
+  //   }
+  // }, [isSignedIn, router]);
 
   return (
     <>
