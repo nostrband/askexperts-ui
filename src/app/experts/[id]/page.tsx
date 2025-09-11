@@ -192,6 +192,14 @@ export default function ExpertChatPage() {
                       <div className="text-xs mt-1 flex justify-between">
                         <span className="text-gray-500 flex items-center">
                           {new Date(message.timestamp).toLocaleTimeString()}
+                          <span className="ml-2 text-xs text-gray-400">
+                            {(() => {
+                              const bytes = new TextEncoder().encode(message.content).length;
+                              return bytes < 1024
+                                ? `${bytes} B`
+                                : `${(bytes / 1024).toFixed(1)} KB`;
+                            })()}
+                          </span>
                         </span>
                         {message.sender === "user" && message.amountPaid && (
                           <span className="text-red-600 font-medium ms-2">
