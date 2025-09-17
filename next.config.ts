@@ -20,6 +20,7 @@ const nextConfig: NextConfig = {
       ];
     }
 
+
     return config;
   },
   images: {

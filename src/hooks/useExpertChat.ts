@@ -6,6 +6,7 @@ import { nwc } from "@getalby/sdk";
 import { updateWalletBalance } from "../utils/walletUtils";
 import { parseExpertProfile } from "askexperts/experts";
 import { useClerk } from "@clerk/nextjs";
+import { processImagesForStorage, cleanupObjectUrls } from "../utils/images";
 
 // Define Message interface for chat messages
 export interface ChatMessage {
@@ -15,6 +16,7 @@ export interface ChatMessage {
   timestamp: number;
   amountPaid?: number; // Amount paid in sats (only for expert messages)
   sending?: boolean; // Flag to indicate if the message is currently being sent
+  images?: string[]; // Array of image URLs (data URLs or remote URLs)
 }
 
 export interface UseExpertChatResult {
@@ -201,6 +203,13 @@ export function useExpertChat(
       if (nwcClientRef.current) {
         nwcClientRef.current.close();
       }
+      
+      // Cleanup object URLs to prevent memory leaks
+      messages.forEach(message => {
+        if (message.images) {
+          cleanupObjectUrls(message.images);
+        }
+      });
     };
   }, [expertPubkey, dbClient, dbLoading]);
 
@@ -235,17 +244,21 @@ export function useExpertChat(
 
       setMessages((prev) => [...prev, userMessage]);
 
-      // Process message and get expert's reply
-      const expertReplyContent = await chatClient.current.processMessage(
+      // Process message and get expert's reply with images
+      const expertReplyData = await chatClient.current.processMessageExt(
         messageContent
       );
+
+      // Process images for storage optimization
+      const processedImages = expertReplyData.images ? processImagesForStorage(expertReplyData.images) : undefined;
 
       // Add expert's reply to chat
       const expertReply: ChatMessage = {
         id: `expert-${Date.now()}`,
-        content: expertReplyContent,
+        content: expertReplyData.text,
         sender: "expert",
         timestamp: Date.now(),
+        images: processedImages,
       };
       // Update the user message to mark it as sent and add the expert reply
       setMessages((prev) => {

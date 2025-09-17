@@ -8,6 +8,7 @@ import Footer from "../../../components/layout/Footer";
 import { useExpertChat } from "../../../hooks/useExpertChat";
 import Dialog from "../../../components/ui/Dialog";
 import MarkdownView from "../../../components/Markdown";
+import ImageGallery from "../../../components/ui/ImageGallery";
 
 export default function ExpertChatPage() {
   const params = useParams();
@@ -190,6 +191,11 @@ export default function ExpertChatPage() {
                       <div className="whitespace-pre-wrap break-words">
                         <MarkdownView md={message.content} />
                       </div>
+                      {message.images && message.images.length > 0 && (
+                        <div className="mt-3">
+                          <ImageGallery images={message.images} />
+                        </div>
+                      )}
                       <div className="text-xs mt-1 flex justify-between">
                         <span className="text-gray-500 flex items-center">
                           {new Date(message.timestamp).toLocaleTimeString()}
