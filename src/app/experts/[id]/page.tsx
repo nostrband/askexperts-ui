@@ -222,7 +222,7 @@ export default function ExpertChatPage() {
             <div className="flex justify-between items-center">
               <div className="flex items-start space-x-4 min-w-0 flex-1 pr-4">
                 <div className="flex-shrink-0">
-                  <div className="relative w-16 h-16 rounded-full overflow-hidden">
+                  <div className="relative w-20 h-20 rounded-full overflow-hidden">
                     <Image
                       src={expert.picture || "/nostr.png"}
                       alt={expert.name || "Expert"}
@@ -288,23 +288,45 @@ export default function ExpertChatPage() {
                       <div className="text-xs mt-1 flex justify-between">
                         <span className="text-gray-500 flex items-center">
                           {new Date(message.timestamp).toLocaleTimeString()}
-                          <span className="ml-2 text-xs text-gray-400">
-                            {(() => {
-                              const bytes = new TextEncoder().encode(
-                                message.content
-                              ).length;
-                              return bytes < 1024
-                                ? `${bytes} B`
-                                : `${(bytes / 1024).toFixed(1)} KB`;
-                            })()}
-                          </span>
+                          {message.content && (
+                            <span className="ml-2 text-xs text-gray-400">
+                              {(() => {
+                                const bytes = new TextEncoder().encode(
+                                  message.content
+                                ).length;
+                                return bytes < 1024
+                                  ? `${bytes} B`
+                                  : `${(bytes / 1024).toFixed(1)} KB`;
+                              })()}
+                            </span>
+                          )}
+                          {message.sender === "expert" &&
+                            message.send_time &&
+                            message.first_chunk_time &&
+                            message.finished_time && (
+                              <span className="ml-2 text-xs text-gray-400">
+                                {(() => {
+                                  const latencySec =
+                                    (message.first_chunk_time -
+                                      message.send_time) /
+                                    1000;
+                                  const streamingSec =
+                                    (message.finished_time -
+                                      message.first_chunk_time) /
+                                    1000;
+                                  return `${latencySec.toFixed(
+                                    1
+                                  )}+${streamingSec.toFixed(1)} sec`;
+                                })()}
+                              </span>
+                            )}
                         </span>
                         {message.sender === "user" && message.amountPaid && (
                           <span className="text-red-600 font-medium ms-2">
                             ₿ -{message.amountPaid}
                           </span>
                         )}
-                        {message.sender === "user" && message.sending && (
+                        {message.sending && (
                           <span>
                             <svg
                               className="animate-spin ml-1 h-3 w-3 text-gray-500"

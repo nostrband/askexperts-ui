@@ -17,6 +17,9 @@ export interface ChatMessage {
   amountPaid?: number; // Amount paid in sats (only for expert messages)
   sending?: boolean; // Flag to indicate if the message is currently being sent
   images?: string[]; // Array of image URLs (data URLs or remote URLs)
+  send_time?: number; // When message was sent (for expert messages)
+  first_chunk_time?: number; // When first chunk was received (for expert messages)
+  finished_time?: number; // When message was completely processed (for expert messages)
 }
 
 export interface UseExpertChatResult {
@@ -101,6 +104,7 @@ export function useExpertChat(
         // Create chat client with expert pubkey and proper NWC string
         const client = new AskExpertsChatClient(expertPubkey, {
           nwcString: defaultWallet.nwc,
+          stream: true,
           onMaxAmountExceeded: async (prompt, quote) => {
             // If callback is provided, use it to ask for user confirmation
             if (onMaxAmountExceeded) {
@@ -250,33 +254,69 @@ export function useExpertChat(
         content: messageContent,
         sender: "user",
         timestamp: Date.now(),
-        sending: true, // Mark the message as being sent
       };
 
       setMessages((prev) => [...prev, userMessage]);
 
-      // Process message and get expert's reply with images
-      const expertReplyData = await chatClient.current.processMessageExt(
-        messageContent
-      );
-
-      // Process images for storage optimization
-      const processedImages = expertReplyData.images ? processImagesForStorage(expertReplyData.images) : undefined;
-
-      // Add expert's reply to chat
-      const expertReply: ChatMessage = {
-        id: `expert-${Date.now()}`,
-        content: expertReplyData.text,
+      // Create initial expert message for streaming
+      const expertMessageId = `expert-${Date.now()}`;
+      const sendTime = Date.now();
+      const initialExpertMessage: ChatMessage = {
+        id: expertMessageId,
+        content: "",
         sender: "expert",
-        timestamp: Date.now(),
-        images: processedImages,
+        timestamp: sendTime,
+        sending: true,
+        send_time: sendTime,
       };
-      // Update the user message to mark it as sent and add the expert reply
+
+      // Add initial empty expert message with loading state
       setMessages((prev) => {
         const updatedMessages = prev.map((msg) =>
           msg.id === messageId ? { ...msg, sending: false } : msg
         );
-        return [...updatedMessages, expertReply];
+        return [...updatedMessages, initialExpertMessage];
+      });
+
+      // Process message with streaming callback
+      const expertReplyData = await chatClient.current.processMessageExt(
+        messageContent,
+        (chunk) => {
+          const chunkTime = Date.now();
+          // Update the expert message with the new chunk
+          setMessages((prev) => {
+            return prev.map((msg) => {
+              if (msg.id === expertMessageId) {
+                return {
+                  ...msg,
+                  content: msg.content + chunk.text,
+                  images: [...(msg.images || []), ...(chunk.images ? processImagesForStorage(chunk.images) : [])],
+                  first_chunk_time: msg.first_chunk_time ? msg.first_chunk_time : chunkTime,
+                };
+              }
+              return msg;
+            });
+          });
+        }
+      );
+
+      // Final update with complete response and processed images
+      const processedImages = expertReplyData.images ? processImagesForStorage(expertReplyData.images) : undefined;
+      const finishedTime = Date.now();
+      
+      setMessages((prev) => {
+        return prev.map((msg) => {
+          if (msg.id === expertMessageId) {
+            return {
+              ...msg,
+              content: expertReplyData.text,
+              images: processedImages,
+              sending: false, // Set loading to false when finished
+              finished_time: finishedTime,
+            };
+          }
+          return msg;
+        });
       });
     } catch (err) {
       console.error("Error sending message:", err);
