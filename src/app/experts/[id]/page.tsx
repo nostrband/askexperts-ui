@@ -277,7 +277,7 @@ export default function ExpertChatPage() {
                           : "max-w-full bg-gray-100 text-gray-900"
                       } rounded-lg p-4`}
                     >
-                      <div className="whitespace-pre-wrap break-words">
+                      <div className="break-words">
                         <MarkdownView md={message.content} />
                       </div>
                       {message.images && message.images.length > 0 && (
