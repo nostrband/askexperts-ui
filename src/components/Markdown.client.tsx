@@ -30,10 +30,21 @@ export default function MarkdownClient({ md, wrapLines = false }: Props) {
           },
         }],
       ]}
-      // our UI wrappers for code
+      // our UI wrappers for code and tables
       components={{
         pre: (props) => <CodeBlock {...props} wrapLines={wrapLines} />,
         code: InlineCode,
+        table: (props) => (
+          <div className="overflow-x-auto my-4">
+            <table className="border-collapse border border-gray-300 w-full" {...props} />
+          </div>
+        ),
+        th: (props) => (
+          <th className="border border-gray-300 px-4 py-2 bg-gray-50 font-semibold text-left" {...props} />
+        ),
+        td: (props) => (
+          <td className="border border-gray-300 px-4 py-2" {...props} />
+        ),
       }}
     >
       {md}

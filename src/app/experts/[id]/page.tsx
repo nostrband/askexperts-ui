@@ -42,6 +42,7 @@ export default function ExpertChatPage() {
 
   const [inputMessage, setInputMessage] = useState("");
   const [sending, setSending] = useState(false);
+  const [textareaRows, setTextareaRows] = useState(1);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Scroll to bottom of messages when new messages are added
@@ -57,6 +58,9 @@ export default function ExpertChatPage() {
   useEffect(() => {
     if (lastFailedMessage) {
       setInputMessage(lastFailedMessage);
+      // Recalculate rows for the restored message
+      const lineCount = Math.min(Math.max(lastFailedMessage.split('\n').length, 1), 10);
+      setTextareaRows(lineCount);
       setLastFailedMessage("");
     }
   }, [lastFailedMessage, setLastFailedMessage]);
@@ -77,6 +81,7 @@ export default function ExpertChatPage() {
 
     // Clear the textarea immediately when Send is clicked
     setInputMessage("");
+    setTextareaRows(1);
 
     try {
       setSending(true);
@@ -249,70 +254,163 @@ export default function ExpertChatPage() {
           {/* Message Input - Fixed at the bottom */}
           <div className="bg-white rounded-lg shadow-md p-6 sticky bottom-0 z-20">
             <form onSubmit={handleSendMessage} className="space-y-4">
-              <textarea
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                onKeyDown={(e) => {
-                  // Send message on Ctrl+Enter
-                  if (e.key === "Enter" && e.ctrlKey) {
-                    e.preventDefault();
-                    if (inputMessage.trim() && !sending) {
-                      handleSendMessage(e);
-                    }
-                  }
-                }}
-                placeholder={`Message ${
-                  expert.name || "the expert"
-                }... (Ctrl+Enter to send)`}
-                className="w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                rows={3}
-                disabled={sending}
-              />
+              {/* Input container with border */}
+              <div className="border border-gray-300 rounded-md shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500">
+                {textareaRows === 1 ? (
+                  // Single line layout - textarea and button side by side
+                  <div className="flex items-center">
+                    <textarea
+                      value={inputMessage}
+                      onChange={(e) => {
+                        const newValue = e.target.value;
+                        setInputMessage(newValue);
+                        
+                        // Calculate number of lines based on newlines, minimum 1, maximum 10
+                        const lineCount = Math.min(Math.max(newValue.split('\n').length, 1), 10);
+                        setTextareaRows(lineCount);
+                      }}
+                      onKeyDown={(e) => {
+                        // Send message on Enter (without Shift)
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          if (inputMessage.trim() && !sending) {
+                            handleSendMessage(e);
+                          }
+                        }
+                        // Allow Shift+Enter to add new lines (default textarea behavior)
+                      }}
+                      placeholder={`Message ${
+                        expert.name || "the expert"
+                      }... (Enter to send, Shift+Enter for new line)`}
+                      className="flex-1 px-4 py-3 border-0 focus:outline-none focus:ring-0 resize-none bg-transparent"
+                      rows={1}
+                      disabled={sending}
+                    />
+                    <button
+                      type="submit"
+                      disabled={!inputMessage.trim() || sending}
+                      className={`p-3 mx-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 ${
+                        !inputMessage.trim() || sending
+                          ? "text-gray-400 cursor-not-allowed"
+                          : "text-blue-600 hover:bg-blue-50"
+                      }`}
+                      title="Send message"
+                    >
+                      {sending ? (
+                        <svg
+                          className="animate-spin h-5 w-5"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                      ) : (
+                        // Send icon (paper plane)
+                        <svg
+                          className="h-5 w-5"
+                          fill="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                ) : (
+                  // Multi-line layout - textarea full width, button below
+                  <div className="space-y-3">
+                    <textarea
+                      value={inputMessage}
+                      onChange={(e) => {
+                        const newValue = e.target.value;
+                        setInputMessage(newValue);
+                        
+                        // Calculate number of lines based on newlines, minimum 1, maximum 10
+                        const lineCount = Math.min(Math.max(newValue.split('\n').length, 1), 10);
+                        setTextareaRows(lineCount);
+                      }}
+                      onKeyDown={(e) => {
+                        // Send message on Enter (without Shift)
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          if (inputMessage.trim() && !sending) {
+                            handleSendMessage(e);
+                          }
+                        }
+                        // Allow Shift+Enter to add new lines (default textarea behavior)
+                      }}
+                      placeholder={`Message ${
+                        expert.name || "the expert"
+                      }... (Enter to send, Shift+Enter for new line)`}
+                      className="w-full px-4 py-3 border-0 focus:outline-none focus:ring-0 resize-none bg-transparent"
+                      rows={textareaRows}
+                      disabled={sending}
+                    />
+                    <div className="flex justify-end px-3 pb-2">
+                      <button
+                        type="submit"
+                        disabled={!inputMessage.trim() || sending}
+                        className={`bg-blue-600 text-white p-3 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                          !inputMessage.trim() || sending
+                            ? "opacity-50 cursor-not-allowed"
+                            : ""
+                        }`}
+                        title="Send message"
+                      >
+                        {sending ? (
+                          <svg
+                            className="animate-spin h-5 w-5"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
+                          </svg>
+                        ) : (
+                          // Send icon (paper plane)
+                          <svg
+                            className="h-5 w-5"
+                            fill="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* Error message display */}
               {sendError && (
                 <div className="text-red-600 text-sm mt-1">{sendError}</div>
               )}
-
-              <div className="flex justify-end">
-                <button
-                  type="submit"
-                  disabled={!inputMessage.trim() || sending}
-                  className={`bg-blue-600 text-white py-2 px-6 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                    !inputMessage.trim() || sending
-                      ? "opacity-50 cursor-not-allowed"
-                      : ""
-                  }`}
-                >
-                  {sending ? (
-                    <span className="flex items-center">
-                      <svg
-                        className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
-                      </svg>
-                      Sending...
-                    </span>
-                  ) : (
-                    "Send"
-                  )}
-                </button>
-              </div>
             </form>
           </div>
         </div>
