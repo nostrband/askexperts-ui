@@ -13,11 +13,13 @@ import ImageGallery from "../../../components/ui/ImageGallery";
 export default function ExpertChatPage() {
   const params = useParams();
   const expertId = params.id as string;
-  
+
   // Payment confirmation dialog state
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState(0);
-  const [paymentResolver, setPaymentResolver] = useState<((value: boolean) => void) | null>(null);
+  const [paymentResolver, setPaymentResolver] = useState<
+    ((value: boolean) => void) | null
+  >(null);
 
   // Handle max amount exceeded
   const handleMaxAmountExceeded = async (amount_sats: number) => {
@@ -46,6 +48,14 @@ export default function ExpertChatPage() {
   const [showExpertInfo, setShowExpertInfo] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Helper function to set input message and calculate textarea rows
+  const setInputMessageWithRows = (message: string) => {
+    setInputMessage(message);
+    // Calculate number of lines based on newlines, minimum 1, maximum 10
+    const lineCount = Math.min(Math.max(message.split("\n").length, 1), 10);
+    setTextareaRows(lineCount);
+  };
+
   // Scroll to bottom of messages when new messages are added
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({
@@ -58,13 +68,75 @@ export default function ExpertChatPage() {
   // Set input message to last failed message when there's an error
   useEffect(() => {
     if (lastFailedMessage) {
-      setInputMessage(lastFailedMessage);
-      // Recalculate rows for the restored message
-      const lineCount = Math.min(Math.max(lastFailedMessage.split('\n').length, 1), 10);
-      setTextareaRows(lineCount);
+      setInputMessageWithRows(lastFailedMessage);
       setLastFailedMessage("");
     }
   }, [lastFailedMessage, setLastFailedMessage]);
+
+  // Check for message in URL hash on page load and restore it
+  useEffect(() => {
+    const handleHashMessage = async () => {
+      const hash = window.location.hash;
+      if (hash.startsWith("#send=")) {
+        try {
+          // Extract and decode the message from the hash
+          const encodedMessage = hash.substring(6); // Remove '#send='
+          const message = decodeURIComponent(encodedMessage);
+
+          // Remove the hash from the URL without triggering a page reload
+          const urlWithoutHash = window.location.href.split("#")[0];
+          window.history.replaceState(null, "", urlWithoutHash);
+
+          // Send the message directly instead of just setting it in the textarea
+          if (message.trim()) {
+            setInputMessageWithRows(message);
+          }
+        } catch (error) {
+          console.error("Error decoding message from URL hash:", error);
+        }
+      }
+    };
+
+    const forceReload = () => {
+      const hash = window.location.hash;
+      if (hash.startsWith("#send=")) {
+        window.location.reload();
+      }
+    };
+
+    // Check hash on mount
+    handleHashMessage();
+
+    // Listen for hash changes
+    window.addEventListener("hashchange", forceReload);
+
+    // Listen for popstate events (back/forward navigation)
+    window.addEventListener("popstate", forceReload);
+
+    // Listen for modern navigate events if available
+    let handleNavigate: ((e: any) => void) | null = null;
+    if ("navigation" in window) {
+      handleNavigate = (e: any) => {
+        if (e.navigationType !== "reload") {
+          // Small delay to ensure URL has been updated
+          setTimeout(forceReload, 0);
+        }
+      };
+      (window as any).navigation.addEventListener("navigate", handleNavigate);
+    }
+
+    // Cleanup event listeners
+    return () => {
+      window.removeEventListener("hashchange", forceReload);
+      window.removeEventListener("popstate", forceReload);
+      if ("navigation" in window && handleNavigate) {
+        (window as any).navigation.removeEventListener(
+          "navigate",
+          handleNavigate
+        );
+      }
+    };
+  }, [sendMessage]); // Include sendMessage in dependencies
 
   // Hide expert info when messages are present
   useEffect(() => {
@@ -143,8 +215,8 @@ export default function ExpertChatPage() {
           <div
             className={`bg-white rounded-lg shadow-md p-6 mb-4 sticky top-20 z-20 transition-all duration-500 ease-in-out ${
               showExpertInfo
-                ? 'transform translate-y-0 opacity-100 max-h-96'
-                : 'transform -translate-y-full opacity-0 max-h-0 p-0 mb-0 overflow-hidden'
+                ? "transform translate-y-0 opacity-100 max-h-96"
+                : "transform -translate-y-full opacity-0 max-h-0 p-0 mb-0 overflow-hidden"
             }`}
           >
             <div className="flex justify-between items-center">
@@ -218,7 +290,9 @@ export default function ExpertChatPage() {
                           {new Date(message.timestamp).toLocaleTimeString()}
                           <span className="ml-2 text-xs text-gray-400">
                             {(() => {
-                              const bytes = new TextEncoder().encode(message.content).length;
+                              const bytes = new TextEncoder().encode(
+                                message.content
+                              ).length;
                               return bytes < 1024
                                 ? `${bytes} B`
                                 : `${(bytes / 1024).toFixed(1)} KB`;
@@ -277,12 +351,7 @@ export default function ExpertChatPage() {
                       <textarea
                         value={inputMessage}
                         onChange={(e) => {
-                          const newValue = e.target.value;
-                          setInputMessage(newValue);
-                          
-                          // Calculate number of lines based on newlines, minimum 1, maximum 10
-                          const lineCount = Math.min(Math.max(newValue.split('\n').length, 1), 10);
-                          setTextareaRows(lineCount);
+                          setInputMessageWithRows(e.target.value);
                         }}
                         onKeyDown={(e) => {
                           // Send message on Enter (without Shift)
@@ -348,12 +417,7 @@ export default function ExpertChatPage() {
                       <textarea
                         value={inputMessage}
                         onChange={(e) => {
-                          const newValue = e.target.value;
-                          setInputMessage(newValue);
-                          
-                          // Calculate number of lines based on newlines, minimum 1, maximum 10
-                          const lineCount = Math.min(Math.max(newValue.split('\n').length, 1), 10);
-                          setTextareaRows(lineCount);
+                          setInputMessageWithRows(e.target.value);
                         }}
                         onKeyDown={(e) => {
                           // Send message on Enter (without Shift)
@@ -434,7 +498,7 @@ export default function ExpertChatPage() {
           <MinimalFooter />
         </div>
       </main>
-      
+
       {/* Payment Confirmation Dialog */}
       <Dialog
         isOpen={isPaymentDialogOpen}

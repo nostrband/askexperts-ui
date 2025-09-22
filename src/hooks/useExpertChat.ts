@@ -216,7 +216,18 @@ export function useExpertChat(
   // Function to send a message to the expert
   const sendMessage = async (messageContent: string) => {
     if (!chatClient.current) {
-      openSignIn()
+      // Create redirect URL with the message in the hash
+      const currentUrl = new URL(window.location.href);
+      // Remove existing hash if any
+      currentUrl.hash = '';
+      // Add the message to the hash, URL-encoded to handle special characters,
+      // ? is a hack to force page reload
+      const redirectUrl = `${currentUrl.href}#send=${encodeURIComponent(messageContent)}`;
+      
+      // Pass the URL with message as redirect URL so user returns to this chat page after sign-in
+      openSignIn({
+        forceRedirectUrl: redirectUrl
+      });
       return;
     }
 
