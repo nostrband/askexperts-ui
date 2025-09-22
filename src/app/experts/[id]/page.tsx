@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
-import Header from "../../../components/layout/Header";
+import ExpertChatHeader from "../../../components/layout/ExpertChatHeader";
 import MinimalFooter from "../../../components/layout/MinimalFooter";
 import { useExpertChat } from "../../../hooks/useExpertChat";
 import Dialog from "../../../components/ui/Dialog";
@@ -105,7 +105,7 @@ export default function ExpertChatPage() {
   if (loading) {
     return (
       <>
-        <Header />
+        <ExpertChatHeader expert={null} showExpertInfo={true} />
         <main className="pt-24 pb-3 min-h-screen">
           <div className="container mx-auto px-4">
             <div className="flex justify-center items-center h-64">
@@ -121,7 +121,7 @@ export default function ExpertChatPage() {
   if (error || !expert) {
     return (
       <>
-        <Header />
+        <ExpertChatHeader expert={null} showExpertInfo={true} />
         <main className="pt-24 pb-3 min-h-screen">
           <div className="container mx-auto px-4">
             <div className="bg-white rounded-lg shadow-md p-6 text-center">
@@ -136,7 +136,7 @@ export default function ExpertChatPage() {
 
   return (
     <>
-      <Header />
+      <ExpertChatHeader expert={expert} showExpertInfo={showExpertInfo} />
       <main className="pt-24 min-h-screen flex flex-col">
         <div className="container mx-auto px-4 flex flex-col flex-grow relative pb-32">
           {/* Expert Profile - Fixed at the top with animation */}
@@ -148,7 +148,7 @@ export default function ExpertChatPage() {
             }`}
           >
             <div className="flex justify-between items-center">
-              <div className="flex items-start space-x-4">
+              <div className="flex items-start space-x-4 min-w-0 flex-1 pr-4">
                 <div className="flex-shrink-0">
                   <div className="relative w-16 h-16 rounded-full overflow-hidden">
                     <Image
@@ -160,8 +160,8 @@ export default function ExpertChatPage() {
                     />
                   </div>
                 </div>
-                <div className="max-w-[80%]">
-                  <h1 className="text-2xl font-bold">
+                <div className="min-w-0 flex-1">
+                  <h1 className="text-2xl font-bold truncate sm:whitespace-normal">
                     {expert.name || "Expert"}
                   </h1>
                   <p className="text-gray-600 break-words whitespace-pre-wrap overflow-hidden">
