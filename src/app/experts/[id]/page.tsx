@@ -307,7 +307,7 @@ export default function ExpertChatPage() {
                           <ImageGallery images={message.images} />
                         </div>
                       )}
-                      <div className="text-xs mt-1 flex justify-between">
+                      <div className="text-xs mt-1 flex items-center flex-wrap">
                         <span className="text-gray-500 flex items-center">
                           {new Date(message.timestamp).toLocaleTimeString()}
                           {message.content && (
@@ -344,14 +344,14 @@ export default function ExpertChatPage() {
                             )}
                         </span>
                         {message.sender === "user" && message.amountPaid && (
-                          <span className="text-red-600 font-medium ms-2">
+                          <span className="text-red-600 font-medium ml-2">
                             ₿ -{message.amountPaid}
                           </span>
                         )}
                         {message.sending && (
-                          <span>
+                          <span className="ml-2">
                             <svg
-                              className="animate-spin ml-1 h-3 w-3 text-gray-500"
+                              className="animate-spin h-3 w-3 text-gray-500"
                               xmlns="http://www.w3.org/2000/svg"
                               fill="none"
                               viewBox="0 0 24 24"
