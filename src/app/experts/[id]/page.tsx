@@ -59,26 +59,15 @@ export default function ExpertChatPage() {
 
   // Scroll to bottom only when new messages are added (not during streaming updates)
   useEffect(() => {
-    // Only scroll if:
-    // 1. Number of messages increased (new message added)
-    // 2. Or if a message finished streaming (sending flag changed from true to false)
+    // Only scroll if the number of messages increased (new message added)
     const currentLength = messages.length;
     const lengthIncreased = currentLength > prevMessagesLengthRef.current;
-    
-    // Check if any message just finished streaming
-    const hasFinishedStreaming = messages.some((msg, index) => {
-      // Only check expert messages that might have been streaming
-      if (msg.sender !== 'expert') return false;
-      
-      // If this message is not sending and it's the last expert message, it likely just finished
-      return !msg.sending && index === messages.length - 1;
-    });
     
     // Update the ref for next comparison
     prevMessagesLengthRef.current = currentLength;
     
-    // Only scroll if we added a new message or finished streaming the last message
-    if (lengthIncreased || (hasFinishedStreaming && messages.length > 0)) {
+    // Only scroll if we added a new message
+    if (lengthIncreased) {
       messagesEndRef.current?.scrollIntoView({
         behavior: "smooth",
         block: "nearest",
