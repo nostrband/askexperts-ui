@@ -47,6 +47,7 @@ export default function ExpertChatPage() {
   const [textareaRows, setTextareaRows] = useState(1);
   const [showExpertInfo, setShowExpertInfo] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const prevMessagesLengthRef = useRef(0);
 
   // Helper function to set input message and calculate textarea rows
   const setInputMessageWithRows = (message: string) => {
@@ -56,13 +57,34 @@ export default function ExpertChatPage() {
     setTextareaRows(lineCount);
   };
 
-  // Scroll to bottom of messages when new messages are added
+  // Scroll to bottom only when new messages are added (not during streaming updates)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({
-      behavior: "smooth",
-      block: "nearest",
-      inline: "nearest",
+    // Only scroll if:
+    // 1. Number of messages increased (new message added)
+    // 2. Or if a message finished streaming (sending flag changed from true to false)
+    const currentLength = messages.length;
+    const lengthIncreased = currentLength > prevMessagesLengthRef.current;
+    
+    // Check if any message just finished streaming
+    const hasFinishedStreaming = messages.some((msg, index) => {
+      // Only check expert messages that might have been streaming
+      if (msg.sender !== 'expert') return false;
+      
+      // If this message is not sending and it's the last expert message, it likely just finished
+      return !msg.sending && index === messages.length - 1;
     });
+    
+    // Update the ref for next comparison
+    prevMessagesLengthRef.current = currentLength;
+    
+    // Only scroll if we added a new message or finished streaming the last message
+    if (lengthIncreased || (hasFinishedStreaming && messages.length > 0)) {
+      messagesEndRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "nearest",
+      });
+    }
   }, [messages]);
 
   // Set input message to last failed message when there's an error
