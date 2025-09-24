@@ -33,6 +33,9 @@ export default function MarkdownClient({ md, wrapLines = false }: Props) {
       components={{
         // pre: (props) => <CodeBlock {...props} wrapLines={wrapLines} />,
         // code: InlineCode,
+        a: (props) => (
+          <a className="underline" {...props} />
+        ),
         li: (props) => (
           <li className="ml-6 mb-1" {...props} />
         ),

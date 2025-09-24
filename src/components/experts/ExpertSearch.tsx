@@ -96,8 +96,8 @@ export default function ExpertSearch() {
       
       {/* Search Results */}
       {searchResults.length > 0 && (
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold mb-4">Search Results</h2>
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold mb-6">Search Results</h2>
           <div className="space-y-4">
             {searchResults.map((expert) => (
               <ExpertCard key={expert.pubkey} expert={expert} />
