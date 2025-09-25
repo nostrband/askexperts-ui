@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Header from '../../components/layout/Header';
 import Footer from '../../components/layout/Footer';
+import { AuthGuard } from '../../components/auth/AuthGuard';
 import { useDBClient } from '../../hooks/useDBClient';
 import { useDefaultWalletBalance } from '../../hooks/useDefaultWalletBalance';
 import { DBExpert } from 'askexperts/db';
@@ -39,7 +40,7 @@ export default function HomePage() {
   }, [client, clientLoading]);
 
   return (
-    <>
+    <AuthGuard>
       <Header />
       <main className="pt-24 pb-16 min-h-screen">
         <div className="container mx-auto px-4">
@@ -119,6 +120,6 @@ export default function HomePage() {
         </div>
       </main>
       <Footer />
-    </>
+    </AuthGuard>
   );
 }

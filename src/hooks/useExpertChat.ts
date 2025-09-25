@@ -5,7 +5,7 @@ import { useDBClient } from "./useDBClient";
 import { nwc } from "@getalby/sdk";
 import { updateWalletBalance } from "../utils/walletUtils";
 import { parseExpertProfile } from "askexperts/experts";
-import { useClerk } from "@clerk/nextjs";
+import { useCustomSignIn } from "./useCustomSignIn";
 import { processImagesForStorage, cleanupObjectUrls } from "../utils/images";
 
 // Define Message interface for chat messages
@@ -47,7 +47,7 @@ export function useExpertChat(
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const [lastFailedMessage, setLastFailedMessage] = useState<string>("");
-  const { openSignIn } = useClerk();
+  const { openSignIn } = useCustomSignIn();
 
   const chatClient = useRef<AskExpertsChatClient | null>(null);
   const nwcClientRef = useRef<nwc.NWCClient | null>(null);

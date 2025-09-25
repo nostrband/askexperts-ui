@@ -1,12 +1,13 @@
-import { useAuth } from "@clerk/nextjs";
+import { useAuth } from "./useCustomAuth";
 import { DocStoreWebSocketClient } from "askexperts/docstore";
+import { DOCSTORE_BASE_URL } from "../utils/const";
 import { useState, useEffect } from "react";
 
 // Singleton instance of the client
 let clientInstance: DocStoreWebSocketClient | null = null;
 
 export function useDocStoreClient() {
-  const { getToken } = useAuth();
+  const auth = useAuth();
   const [client, setClient] = useState<DocStoreWebSocketClient | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -21,18 +22,32 @@ export function useDocStoreClient() {
           return;
         }
 
-        // Get the token first
-        const token = await getToken();
-        if (!token)
-          throw new Error(
-            "Authentication token not available. Please sign in."
-          );
+        // Check if user is authenticated with either method
+        if (!auth.isSignedIn) {
+          setLoading(false);
+          return;
+        }
+
+        // Create client options based on auth method
+        let clientOptions: any = {
+          url: DOCSTORE_BASE_URL,
+        };
+
+        if (auth.getToken) {
+          clientOptions.token = async () => {
+            const token = await auth.getToken!();
+            if (!token)
+              throw new Error(
+                "Authentication token not available. Please sign in."
+              );
+            return token;
+          };
+        } else {
+          throw new Error("No authentication method available");
+        }
 
         // Create a new client instance
-        clientInstance = new DocStoreWebSocketClient({
-          url: "https://docstore.askexperts.io",
-          token: token,
-        });
+        clientInstance = new DocStoreWebSocketClient(clientOptions);
 
         setClient(clientInstance);
       } catch (err) {
@@ -51,8 +66,11 @@ export function useDocStoreClient() {
     return () => {
       // We don't dispose the client here since it's a singleton
       // If needed, we could implement a reference counting mechanism
+      // FIXME what happens if it's created in SSR? If we get
+      // requests from different clients in the same process,
+      // how can singleton satisfy them?
     };
-  }, [getToken]);
+  }, [auth.isSignedIn, auth.getToken]);
 
   return { client, loading, error };
 }

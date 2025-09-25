@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useDocStoreClient, DocStore } from '../../../hooks/useDocStoreClient';
 import Header from '../../../components/layout/Header';
 import Footer from '../../../components/layout/Footer';
+import { AuthGuard } from '../../../components/auth/AuthGuard';
 import Dialog from '../../../components/ui/Dialog';
 
 export default function DocStoresPage() {
@@ -175,7 +176,7 @@ export default function DocStoresPage() {
   };
 
   return (
-    <>
+    <AuthGuard>
       <Header />
       <main className="pt-24 pb-16 min-h-screen">
         <div className="container mx-auto px-4">
@@ -419,6 +420,6 @@ export default function DocStoresPage() {
       </Dialog>
 
       <Footer />
-    </>
+    </AuthGuard>
   );
 }

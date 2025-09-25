@@ -4,6 +4,7 @@ import React from 'react';
 import { useParams } from 'next/navigation';
 import Header from '../../../../components/layout/Header';
 import Footer from '../../../../components/layout/Footer';
+import { AuthGuard } from '../../../../components/auth/AuthGuard';
 import DocStoreDetails from '../../../../components/docstore/DocStoreDetails';
 
 export default function DocStorePage() {
@@ -11,7 +12,7 @@ export default function DocStorePage() {
   const docStoreId = params.id as string;
 
   return (
-    <>
+    <AuthGuard>
       <Header />
       <main className="pt-24 pb-16 min-h-screen">
         <div className="container mx-auto px-4">
@@ -20,6 +21,6 @@ export default function DocStorePage() {
         </div>
       </main>
       <Footer />
-    </>
+    </AuthGuard>
   );
 }

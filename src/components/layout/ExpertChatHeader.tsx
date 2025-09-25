@@ -3,9 +3,11 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { SignedIn, SignedOut, useClerk, UserButton } from "@clerk/nextjs";
+import { UserButton } from "@clerk/nextjs";
+import { SignedIn, SignedOut } from "../auth/NostrAuthComponents";
 import Button from "../ui/Button";
 import { useDefaultWalletBalance } from "../../hooks/useDefaultWalletBalance";
+import { useCustomSignIn } from "../../hooks/useCustomSignIn";
 import { Expert } from "askexperts/common";
 
 interface ExpertChatHeaderProps {
@@ -14,7 +16,7 @@ interface ExpertChatHeaderProps {
 }
 
 export default function ExpertChatHeader({ expert, showExpertInfo }: ExpertChatHeaderProps) {
-  const { openSignIn } = useClerk();
+  const { openSignIn } = useCustomSignIn();
   const { wallet, balance, loading } = useDefaultWalletBalance();
 
   return (

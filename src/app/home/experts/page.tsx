@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import Header from '../../../components/layout/Header';
 import Footer from '../../../components/layout/Footer';
+import { AuthGuard } from '../../../components/auth/AuthGuard';
 import { useDBClient } from '../../../hooks/useDBClient';
 import { DBExpert } from 'askexperts/db';
 import CreateExpertDialog from '../../../components/experts/CreateExpertDialog';
@@ -61,7 +62,7 @@ export default function ExpertsPage() {
   }, [openDropdownId]);
 
   return (
-    <>
+    <AuthGuard>
       <Header />
       <main className="pt-24 pb-16 min-h-screen">
         <div className="container mx-auto px-4">
@@ -308,6 +309,6 @@ export default function ExpertsPage() {
           expertId={editExpertId}
         />
       )}
-    </>
+    </AuthGuard>
   );
 }

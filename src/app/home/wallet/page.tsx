@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useDBClient } from '../../../hooks/useDBClient';
 import Header from '../../../components/layout/Header';
 import Footer from '../../../components/layout/Footer';
+import { AuthGuard } from '../../../components/auth/AuthGuard';
 
 export default function DefaultWalletPage() {
   const router = useRouter();
@@ -53,7 +54,7 @@ export default function DefaultWalletPage() {
   }, [client, clientLoading, router]);
 
   return (
-    <>
+    <AuthGuard>
       <Header />
       <main className="pt-24 pb-16 min-h-screen">
         <div className="container mx-auto px-4 text-center">
@@ -66,6 +67,6 @@ export default function DefaultWalletPage() {
         </div>
       </main>
       <Footer />
-    </>
+    </AuthGuard>
   );
 }

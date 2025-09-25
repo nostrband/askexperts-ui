@@ -1,12 +1,13 @@
-import { useAuth } from "@clerk/nextjs";
+import { useAuth } from "./useCustomAuth";
 import { DBRemoteClient } from "askexperts/db";
+import { API_BASE_URL } from "../utils/const";
 import { useState, useEffect } from "react";
 
 // Singleton instance of the client
 let clientInstance: DBRemoteClient | null = null;
 
 export function useDBClient() {
-  const { getToken } = useAuth();
+  const auth = useAuth();
   const [client, setClient] = useState<DBRemoteClient | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -21,21 +22,33 @@ export function useDBClient() {
           return;
         }
 
-        // Leave client as null for anon users
-        if (!await getToken()) return;
+        // Check if user is authenticated with either method
+        if (!auth.isSignedIn) {
+          setLoading(false);
+          return;
+        }
 
-        // Create a new client instance
-        clientInstance = new DBRemoteClient({
-          url: "https://api.askexperts.io",
-          token: async () => {
-            const token = await getToken();
+        // Create client options based on auth method
+        let clientOptions: any = {
+          url: API_BASE_URL,
+        };
+
+        if (auth.getToken) {
+          // Use Clerk token for authentication
+          clientOptions.token = async () => {
+            const token = await auth.getToken!();
             if (!token)
               throw new Error(
                 "Authentication token not available. Please sign in."
               );
             return token;
-          },
-        });
+          };
+        } else {
+          throw new Error("No authentication method available");
+        }
+
+        // Create a new client instance
+        clientInstance = new DBRemoteClient(clientOptions);
 
         setClient(clientInstance);
       } catch (err) {
@@ -55,7 +68,7 @@ export function useDBClient() {
       // We don't dispose the client here since it's a singleton
       // If needed, we could implement a reference counting mechanism
     };
-  }, [getToken]);
+  }, [auth.isSignedIn, auth.getToken]);
 
   return { client, loading, error };
 }

@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@clerk/nextjs';
+import React from 'react';
+// import { useRouter } from 'next/navigation';
+// import { useAuth } from '@clerk/nextjs';
 import Header from '../components/layout/Header';
 import HeroSection from '../components/sections/HeroSection';
 import Footer from '../components/layout/Footer';
@@ -18,8 +18,8 @@ import Footer from '../components/layout/Footer';
 // import AudienceSection from '@/components/sections/AudienceSection';
 
 export default function Home() {
-  const router = useRouter();
-  const { isSignedIn } = useAuth();
+  // const router = useRouter();
+  // const { isSignedIn } = useAuth();
 
   // Redirection to /home disabled as per requirement
   // useEffect(() => {

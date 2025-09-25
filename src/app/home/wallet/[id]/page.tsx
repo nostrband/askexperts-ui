@@ -4,6 +4,7 @@ import React from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Header from '../../../../components/layout/Header';
 import Footer from '../../../../components/layout/Footer';
+import { AuthGuard } from '../../../../components/auth/AuthGuard';
 import WalletDetails from '../../../../components/wallet/WalletDetails';
 
 export default function WalletPage() {
@@ -19,7 +20,7 @@ export default function WalletPage() {
   };
 
   return (
-    <>
+    <AuthGuard>
       <Header />
       <main className="pt-24 pb-16 min-h-screen">
         <div className="container mx-auto px-4">
@@ -28,6 +29,6 @@ export default function WalletPage() {
         </div>
       </main>
       <Footer />
-    </>
+    </AuthGuard>
   );
 }

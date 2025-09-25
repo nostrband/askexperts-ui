@@ -1,6 +1,8 @@
 export const DEFAULT_MODEL = "openai/gpt-oss-120b";
 export const DEFAULT_TEMPERATURE = "0.2";
 
-// OpenAI configuration for icon generation
-export const OPENAI_ICON_MODEL = "gpt-4";
-export const OPENAI_API_KEY = ""; // To be provided later
+// API configuration
+export const APP_DOMAIN = "askexperts.io";
+export const API_BASE_URL = "https://api.askexperts.io";
+export const DOCSTORE_BASE_URL = "wss://docstore.askexperts.io";
+

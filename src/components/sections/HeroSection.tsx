@@ -3,10 +3,10 @@
 import React from "react";
 import Image from "next/image";
 import Button from "../ui/Button";
-import { useClerk } from "@clerk/nextjs";
+import { useCustomSignIn } from "../../hooks/useCustomSignIn";
 
 export default function HeroSection() {
-  const { openSignIn } = useClerk(); 
+  const { openSignIn } = useCustomSignIn();
 
   return (
     <section className="pt-32 pb-16 md:pt-40 md:pb-24">
