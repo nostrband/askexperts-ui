@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { UserButton } from "@clerk/nextjs";
+import CustomUserButton from "../auth/CustomUserButton";
 import { SignedIn, SignedOut } from "../auth/NostrAuthComponents";
 import Button from "../ui/Button";
 import { useDefaultWalletBalance } from "../../hooks/useDefaultWalletBalance";
@@ -132,7 +132,7 @@ function UserDropdown() {
       >
         <div className="py-2">
           <div className="px-2 py-2 border-b border-gray-100">
-            <UserButton showName={true} />
+            <CustomUserButton showName={true} />
           </div>
 
           <Link
