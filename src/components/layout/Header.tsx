@@ -123,9 +123,12 @@ function UserDropdown() {
 
   return (
     <div className="relative" ref={dropdownRef}>
-      <Link href={"#"} onClick={() => setIsOpen(!isOpen)}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="text-gray-600 hover:text-gray-800 transition-colors p-1"
+      >
         &equiv;
-      </Link>
+      </button>
 
       <div
         className={`${
